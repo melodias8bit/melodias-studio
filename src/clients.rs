@@ -141,6 +141,51 @@ pub fn sanitize_eye_prompt(prompt: &str) -> String {
         .replace("red eyes", "soft green eyes")
 }
 
+/// Asks for the YouTube copy in the same loaded LLM session as the thumbnail
+/// prompt. The reply is a JSON object so the fixed template can stay in
+/// `youtube.rs` instead of inside the prompt.
+pub fn ask_youtube(cfg: &Config, vibe: &str) -> Result<crate::youtube::Draft> {
+    let url = format!("{}/v1/chat/completions", cfg.llm_url.trim_end_matches('/'));
+    let body = json!({
+        "model": cfg.llm_model,
+        "temperature": 0.8,
+        "max_tokens": 700,
+        "messages": [
+            {"role": "system", "content": crate::youtube::SYSTEM},
+            {"role": "user", "content": crate::youtube::user_prompt(vibe)}
+        ]
+    });
+    let resp: serde_json::Value = long_client()?
+        .post(&url)
+        .json(&body)
+        .send()
+        .and_then(|r| r.error_for_status())
+        .with_context(|| format!("llama-server failed at {url}"))?
+        .json()?;
+    let raw = resp["choices"][0]["message"]["content"]
+        .as_str()
+        .context("LLM response without content")?;
+    parse_youtube(raw)
+}
+
+/// Models sometimes wrap the JSON in a markdown fence or add a sentence around
+/// it. Take the outermost object and ignore the rest.
+pub fn parse_youtube(raw: &str) -> Result<crate::youtube::Draft> {
+    let start = raw.find('{').context("the LLM reply has no JSON object")?;
+    let end = raw
+        .rfind('}')
+        .context("the LLM reply has no closing brace")?;
+    if end <= start {
+        bail!("the LLM reply has an empty JSON object");
+    }
+    let draft: crate::youtube::Draft =
+        serde_json::from_str(&raw[start..=end]).context("the LLM reply is not valid JSON")?;
+    if draft.title.trim().is_empty() && draft.intro.trim().is_empty() && draft.hashtags.is_empty() {
+        bail!("the LLM returned an empty metadata object");
+    }
+    Ok(draft)
+}
+
 /// One take: drafts and the final share the same request shape, only the
 /// duration, steps and sampler change.
 pub struct AudioRequest<'a> {

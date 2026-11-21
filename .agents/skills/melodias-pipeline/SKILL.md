@@ -41,7 +41,7 @@ list from `STAGES.len()`, so do not hardcode the count outside the test assertio
 
 | # | Stage | What happens |
 | --- | --- | --- |
-| 1 | Image prompt | Starts `llm_start_cmd`, waits for llama-server, asks for the thumbnail prompt, keeps `image_negative_prompt` as the negative side |
+| 1 | Image prompt | Starts `llm_start_cmd`, waits for llama-server, asks for the thumbnail prompt, asks for the YouTube title, intro and hashtags in the same loaded session, keeps `image_negative_prompt` as the negative side |
 | 2 | Prepare image | Stops the LLM, starts `sd_start_cmd`, waits for sd-server |
 | 3 | Image pool | Generates `CANDIDATES` images, scores each one, runs the image retry rounds, keeps the grown pool |
 | 4 | Download | `yt-dlp` downloads the source audio into `work/` |
@@ -51,7 +51,7 @@ list from `STAGES.len()`, so do not hardcode the count outside the test assertio
 | 8 | Review | Runs the optional judge, sends `Msg::Choose`, then blocks on `decisions.recv()` |
 | 9 | Final take | Generates the full-length track with the selected draft seed, then stops the audio server even if generation failed |
 | 10 | Master + save | Fade in/out, loudness normalization, 320 kbps MP3, copies `thumbnail.png` and `audio.mp3` into the run root |
-| 11 | Video | Renders `video.mp4`, writes `meta.json`, and only then records history |
+| 11 | Video | Renders `video.mp4`, writes `youtube.txt` and `meta.json`, and only then records history |
 
 The audio server stays loaded from stage 7 through stage 9 so the review does not pay a reload.
 Everything else is stopped as soon as its consumer is done.
@@ -100,6 +100,7 @@ output/<slug>/
   audio.mp3              mastered track, copied in stage 10
   video.mp4              renderer output, stage 11
   video-ffmpeg.mp4       previous video kept on Remotion re-render
+  youtube.txt            description for the upload, written in stage 11
   meta.json              written after the video, before history
   candidates/            image-NN.png and audio-NN.wav
   work/                  source, reference, take, master, score.json, judge/, video temp
@@ -113,6 +114,7 @@ output/<slug>/
 - `audio.model`, `audio.prompt`, `audio.negative_prompt`, `audio.draft`, `audio.final`,
   `audio.master`, `audio.reference`, `audio.file`
 - `video.file`, `video.size`, `video.renderer`, `video.particles`
+- `youtube.title`, `youtube.description`, `youtube.hashtags`, `youtube.file`
 - `retry.rounds`, `retry.image_rounds`, `retry.audio_rounds`, `retry.stop`,
   `retry.patches[]`
 - `judge`
@@ -120,6 +122,13 @@ output/<slug>/
 Candidate entries keep `file`, `seed`, `prompt`, `negative_prompt` and `references`. That is what
 `melodias image` replays, so a patch applied during a retry is reproducible without the config
 file.
+
+`melodias youtube <dir>` writes `youtube.txt` and `meta.youtube` for a finished run without a
+GPU, using the static template built from the vibe. It keeps an existing `youtube.txt` or the
+copy stored in `meta.json` unless `--force` is passed, so it never replaces the LLM-written or
+hand-edited description of a run by accident. `--opencode` writes the title, intro and hashtags
+with the judge's OpenCode Go key and model instead; it needs no GPU and falls back to the
+existing copy when the call fails.
 
 ## Verification
 

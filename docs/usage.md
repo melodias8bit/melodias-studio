@@ -46,6 +46,29 @@ make video DIR=output/<slug>
 
 The video is the chosen still with a slow zoom, glowing pixel particles, the audio waveform and edge fades, at `VIDEO_WIDTH` x `VIDEO_HEIGHT` (1920x1080 by default).
 
+### YouTube copy
+
+Every finished run leaves `youtube.txt` next to the video. It is the full description, ready to paste into the upload form, and ends with the hashtags on the last line. The title is stored in `meta.json` under `youtube.title` and printed in the run log when the file is written.
+
+The pipeline asks llama-server for the title, the two opening paragraphs and 6 to 8 hashtags while it is already loaded for the thumbnail prompt, so the copy costs no extra model load. If the answer is missing or not valid JSON, the run keeps a static template and uses the vibe as the title instead of failing. The fixed project block and the `#8BitMusic` family of tags live in `src/youtube.rs`; edit that file to change the channel copy for every future run. The three tool lines take their model labels from `IMAGE_MODEL`, `AUDIO_MODEL` and `CREATIVE_MODEL`.
+
+A finished run can get the copy without the GPU. The command reads `meta.json`, writes `youtube.txt` and updates `meta.youtube` with the static template built from the vibe. It keeps the `youtube.txt` or the copy already stored in `meta.json`, so it does not replace an LLM-written or hand-edited description; `--force` rebuilds the template:
+
+```bash
+melodias youtube output/<slug>
+melodias youtube output/<slug> --force
+# or
+make youtube DIR=output/<slug>
+make youtube DIR=output/<slug> ARGS=--force
+```
+
+`--opencode` asks OpenCode Go for a model-written title, intro and hashtags instead of using the template. It reuses `OPENCODE_API_KEY` and `JUDGE_MODEL`, the same backend as the judge, draws from the Go allowance and needs no GPU. If the key is missing or the call fails, the command keeps the existing copy and logs a warning. A successful call overwrites the run copy, like `--force`:
+
+```bash
+melodias youtube output/<slug> --opencode
+make youtube DIR=output/<slug> ARGS=--opencode
+```
+
 ### Judge
 
 Before the review, the run sends the three thumbnails and three 15 s clips to a multimodal model and preselects the best pair. The review screen opens with that image and audio selected and a yellow line with the score and reason. Press `Enter` to accept, or pick another pair.
@@ -129,7 +152,7 @@ The file is `history.db` next to `config.toml`, and `MELODIAS_DB` overrides it. 
 
 ### Dashboard
 
-`melodias dashboard` serves a read-only page at `http://127.0.0.1:7373/` with the score over runs, the findings that cost the most, the outcome mix and the run table. The home also shows totals for runs, acceptance, spend, time, findings, lost points, candidates and retry patches. A left sidebar filters the runs table by outcome and the findings chart by source, and links to the latest and best run. Clicking a run opens its detail: thumbnail, video and audio, the judge verdict, the candidates with their scores and prompts, the findings, the applied patches, every file saved under the run directory and the raw `meta.json`, `score.json` and `verdict.json`. The media is served by the same process with byte-range support, so the video can seek. It opens the database for reading only, never creates or migrates it, and refreshes the summary once a minute; the detail refreshes on demand. It binds localhost only.
+`melodias dashboard` serves a read-only page at `http://127.0.0.1:7373/` with the score over runs, the findings that cost the most, the outcome mix and the run table. The home also shows totals for runs, acceptance, spend, time, findings, lost points, candidates and retry patches. A left sidebar filters the runs table by outcome and the findings chart by source, and links to the latest and best run. Clicking a run opens its own screen, replacing the overview in the same page: thumbnail, video and audio, the judge verdict, the candidates with their scores and prompts, the findings, the applied patches, every file saved under the run directory and the raw `meta.json`, `score.json` and `verdict.json`. The `All runs` link, `Escape` and the browser back button return to the overview. The media is served by the same process with byte-range support, so the video can seek. It opens the database for reading only, never creates or migrates it, and refreshes the summary once a minute; the detail refreshes on demand. It binds localhost only.
 
 ```bash
 melodias dashboard
@@ -138,7 +161,7 @@ melodias dashboard --port 8080 --limit 500
 make dashboard
 ```
 
-The page is served by the binary from `dashboard/`, with no Node, no build step and no network. `--limit` sets how many runs the charts and the API read (200 by default). The files are looked up under `OUT_DIR` by slug, so the detail also works for a run nested one level deeper, like `output/retry-check/<slug>/`. The URL `?run=<id>` opens a run detail directly, and the media links use inline content disposition, so a `.wav` plays in the browser instead of downloading.
+The page is served by the binary from `dashboard/`, with no Node, no build step and no network. `--limit` sets how many runs the charts and the API read (200 by default). The files are looked up under `OUT_DIR` by slug, so the detail also works for a run nested one level deeper, like `output/retry-check/<slug>/`. The URL `?run=<id>` opens the run screen directly, and the media links use inline content disposition, so a `.wav` plays in the browser instead of downloading.
 
 See [dashboard/README.md](../dashboard/README.md) for screenshots and the endpoint list.
 
@@ -200,6 +223,7 @@ Override the paths with `CHIP_VENV`, `FAMISTUDIO_BIN` and `DOTNET_ROOT`. The pro
 | `make install` / `make uninstall` | Installs or removes `~/.local/bin/melodias` |
 | `make generate URL='...' VIBE='...'` | Runs headless and writes `output/run-<timestamp>.log` |
 | `make image DIR=output/<slug>` | Regenerates the thumbnail of a finished run |
+| `make youtube DIR=output/<slug>` | Writes the YouTube copy of a finished run, no GPU |
 | `make render DIR=output/<slug>` | Produces the Remotion video |
 | `make video DIR=output/<slug>` | Assembles the fast ffmpeg video |
 | `make log` | Prints the last 40 lines of the newest log |
@@ -215,7 +239,8 @@ Override the paths with `CHIP_VENV`, `FAMISTUDIO_BIN` and `DOTNET_ROOT`. The pro
 output/<slug>/
 ├── audio.mp3      # 3 min song, 320 kbps, -15 LUFS
 ├── thumbnail.png  # the chosen 1280x720 candidate
-├── meta.json      # candidates, seeds, prompts, selection and source URL
+├── meta.json      # candidates, seeds, prompts, selection, YouTube copy and source URL
+├── youtube.txt    # description ready to paste into the upload form
 ├── candidates/    # N image candidates and N audio drafts
 ├── video.mp4      # 1920x1080, image + particles + waveform
 ├── video-ffmpeg.mp4  # only when Remotion rendered over the fast version

@@ -13,8 +13,10 @@ runs by outcome and findings by source, and links to the latest and best run.
 
 ![Run detail](../docs/assets/dashboard-detail.png)
 
-The run detail: summary, media, judge verdict, candidates, findings, patches,
-files and the raw documents. Click a row or open `?run=<id>`.
+The run screen: summary, media, judge verdict, candidates, findings, patches,
+files and the raw documents. It replaces the overview in the same page when you
+click a row or open `?run=<id>`; `All runs`, `Escape` and the browser back button
+return to the overview.
 
 ## Run it
 

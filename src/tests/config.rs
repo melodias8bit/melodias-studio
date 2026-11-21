@@ -9,6 +9,8 @@ fn reads_the_optional_fields() {
         audio_negative_prompt = "vocals"
         audio_style = "lofi"
         image_style = "watercolor"
+        image_model = "MOSS-Image"
+        creative_model = "Qwen3-4B"
         image_negative_prompt = "glowing eyes"
         image_steps = 12
         image_seed = 42
@@ -31,6 +33,8 @@ fn reads_the_optional_fields() {
     assert_eq!(file.audio_negative_prompt.as_deref(), Some("vocals"));
     assert_eq!(file.audio_style.as_deref(), Some("lofi"));
     assert_eq!(file.image_style.as_deref(), Some("watercolor"));
+    assert_eq!(file.image_model.as_deref(), Some("MOSS-Image"));
+    assert_eq!(file.creative_model.as_deref(), Some("Qwen3-4B"));
     assert_eq!(file.image_negative_prompt.as_deref(), Some("glowing eyes"));
     assert_eq!(file.image_steps, Some(12));
     assert_eq!(file.image_seed, Some(42));

@@ -29,6 +29,9 @@ pub struct Config {
     pub audio_style: String,
     /// Fixed style for the thumbnail prompt, pinned in the system message.
     pub image_style: String,
+    /// Model labels for the YouTube copy; they are copy, not request parameters.
+    pub image_model: String,
+    pub creative_model: String,
     /// Negative prompt for sd-server, sent through sd_cpp_extra_args.
     pub image_negative_prompt: String,
     /// Steers ACE-Step away from voices; the channel only publishes instrumentals.
@@ -142,6 +145,16 @@ impl Config {
             ),
             audio_style: pick(env("AUDIO_STYLE"), file.audio_style, "8-bit chiptune"),
             image_style: pick(env("IMAGE_STYLE"), file.image_style, "8-bit pixel art"),
+            image_model: pick(
+                env("IMAGE_MODEL"),
+                file.image_model,
+                "MOSS-Image-SFT-UD-Q4_K_XL",
+            ),
+            creative_model: pick(
+                env("CREATIVE_MODEL"),
+                file.creative_model,
+                "Qwen3-4B-Instruct-2507",
+            ),
             image_negative_prompt: pick(
                 env("IMAGE_NEGATIVE_PROMPT"),
                 file.image_negative_prompt,
@@ -299,6 +312,8 @@ struct FileConfig {
     audio_stop_cmd: Option<String>,
     audio_style: Option<String>,
     image_style: Option<String>,
+    image_model: Option<String>,
+    creative_model: Option<String>,
     image_negative_prompt: Option<String>,
     audio_negative_prompt: Option<String>,
     gpu_label: Option<String>,

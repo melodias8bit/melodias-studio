@@ -14,6 +14,7 @@ mod refs;
 mod retry;
 mod score;
 mod video;
+mod youtube;
 
 use std::fs::{File, OpenOptions};
 use std::io::{self, IsTerminal, Write};
@@ -25,7 +26,7 @@ use crossterm::style::Stylize;
 
 use pipeline::{Msg, State};
 
-const USAGE: &str = "usage: melodias                 (TUI)\n       melodias <url> <vibe>     (headless)\n       melodias image <dir>      (regenerate the thumbnail of a run)\n       melodias judge <dir>      (review a finished run with the judge)\n       melodias score <dir>      (score a finished run, no GPU)\n       melodias history [view]   (runs, findings or trend, from the local database)
+const USAGE: &str = "usage: melodias                 (TUI)\n       melodias <url> <vibe>     (headless)\n       melodias image <dir>      (regenerate the thumbnail of a run)\n       melodias judge <dir>      (review a finished run with the judge)\n       melodias score <dir>      (score a finished run, no GPU)\n       melodias youtube <dir>    (YouTube copy for a finished run, no GPU)\n       melodias history [view]   (runs, findings or trend, from the local database)
        melodias backfill [dir]   (score finished runs into the history database)\n       melodias dashboard        (local read-only charts over the database)\n       melodias render <dir>     (produced video with Remotion)\n       melodias video <dir>      (fast video with ffmpeg)\n       melodias refs fetch       (fill the reference library from a source)\n       melodias refs import      (import files or packs into the library)\n       melodias refs generate    (generate reference images with sd-server)
        melodias chip <url|file>  (experimental NES cover of a track)";
 
@@ -47,6 +48,9 @@ fn main() -> io::Result<()> {
     }
     if args.first().is_some_and(|arg| arg == "score") {
         return run_score(cfg, &args);
+    }
+    if args.first().is_some_and(|arg| arg == "youtube") {
+        return run_youtube(cfg, &args);
     }
     if args.first().is_some_and(|arg| arg == "history") {
         return run_history(cfg, &args);
@@ -236,6 +240,110 @@ fn run_score(cfg: config::Config, args: &[String]) -> io::Result<()> {
     }
     print_score(&run);
     println!("wrote {}", path.display());
+    Ok(())
+}
+
+/// Writes the YouTube copy for a finished run without touching the GPU. An
+/// existing `youtube.txt` or the copy in `meta.json` (for example, the one the
+/// pipeline wrote with the LLM) is kept; `--force` rebuilds the static template
+/// from the vibe, and `--opencode` asks the cloud model for the copy.
+fn run_youtube(cfg: config::Config, args: &[String]) -> io::Result<()> {
+    let mut force = false;
+    let mut opencode = false;
+    let mut target = None;
+    for arg in &args[1..] {
+        match arg.as_str() {
+            "--force" => force = true,
+            "--opencode" => opencode = true,
+            other if other.starts_with('-') => {
+                eprintln!("unknown option: {other}");
+                std::process::exit(2);
+            }
+            other => target = Some(other),
+        }
+    }
+    let Some(target) = target else {
+        eprintln!("usage: melodias youtube <output-dir> [--force] [--opencode]");
+        std::process::exit(2);
+    };
+    let requested = PathBuf::from(target);
+    let dir = if requested.is_dir() {
+        requested
+    } else {
+        cfg.out_dir.join(target)
+    };
+    let dir = std::fs::canonicalize(&dir)?;
+    let meta_path = dir.join("meta.json");
+    let text = std::fs::read_to_string(&meta_path)?;
+    let mut meta: serde_json::Value = serde_json::from_str(&text)
+        .map_err(|error| io::Error::other(format!("invalid {}: {error}", meta_path.display())))?;
+    let vibe = meta["vibe"].as_str().unwrap_or("8-bit instrumental");
+    let file = dir.join("youtube.txt");
+    let (draft, cloud_ok) = if opencode {
+        match judge::ask_opencode(&cfg, youtube::SYSTEM, &youtube::user_prompt(vibe)) {
+            Ok(reply) => match clients::parse_youtube(&reply) {
+                Ok(draft) => (Some(draft), true),
+                Err(error) => {
+                    eprintln!("warning: youtube: {error:#}");
+                    (None, false)
+                }
+            },
+            Err(error) => {
+                eprintln!("warning: opencode: {error:#}");
+                (None, false)
+            }
+        }
+    } else {
+        (None, false)
+    };
+    let models = youtube::Models {
+        image: &cfg.image_model,
+        audio: &cfg.audio_model,
+        creative: &cfg.creative_model,
+    };
+    let generated = youtube::compose(vibe, draft.as_ref(), &models);
+    let overwrite = force || (opencode && cloud_ok);
+    let stored = if overwrite {
+        None
+    } else {
+        youtube::from_meta(&meta)
+    };
+    let saved = if overwrite {
+        None
+    } else {
+        std::fs::read_to_string(&file)
+            .ok()
+            .map(|text| text.trim().to_string())
+            .filter(|text| !text.is_empty())
+    };
+    let metadata = if overwrite {
+        generated
+    } else if let Some(description) = saved {
+        // A hand-edited youtube.txt wins over the copy stored in meta.json.
+        let fallback = stored.unwrap_or(generated);
+        youtube::Metadata {
+            title: fallback.title,
+            description: format!("{description}\n"),
+            hashtags: fallback.hashtags,
+        }
+    } else if let Some(copy) = stored {
+        copy
+    } else {
+        generated
+    };
+    std::fs::write(&file, &metadata.description)?;
+    meta["youtube"] = serde_json::json!({
+        "title": &metadata.title,
+        "description": &metadata.description,
+        "hashtags": &metadata.hashtags,
+        "file": file.display().to_string(),
+    });
+    std::fs::write(&meta_path, serde_json::to_vec_pretty(&meta)?)?;
+    println!("youtube: {}", metadata.title);
+    println!("path: {}", file.display());
+    println!("hashtags: {}", metadata.hashtags.join(" "));
+    println!();
+    print!("{}", metadata.description);
     Ok(())
 }
 

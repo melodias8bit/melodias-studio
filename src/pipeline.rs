@@ -6,7 +6,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 
-use crate::{clients, config::Config, history, judge, media, references, retry, score, video};
+use crate::{
+    clients, config::Config, history, judge, media, references, retry, score, video, youtube,
+};
 
 pub const STAGES: [&str; 11] = [
     "Image prompt",
@@ -174,15 +176,31 @@ fn run(
             }
         };
 
-    // The LLM writes the thumbnail prompt while it still owns the GPU.
-    let mut image_prompt = retry::Prompt::new(
-        step(tx, 0, || {
-            media::ssh_run(cfg, &cfg.llm_start_cmd)?;
-            clients::wait_llm(cfg, Duration::from_secs(180))?;
-            clients::ask_image_prompt(cfg, vibe)
-        })?,
-        cfg.image_negative_prompt.clone(),
-    );
+    // The LLM writes the thumbnail prompt while it still owns the GPU. It also
+    // writes the YouTube copy here so no other stage pays for a second load.
+    let (image_prompt_text, youtube_draft) = step(tx, 0, || {
+        media::ssh_run(cfg, &cfg.llm_start_cmd)?;
+        clients::wait_llm(cfg, Duration::from_secs(180))?;
+        let prompt = clients::ask_image_prompt(cfg, vibe)?;
+        let youtube = match clients::ask_youtube(cfg, vibe) {
+            Ok(draft) => Some(draft),
+            Err(error) => {
+                log(
+                    tx,
+                    format!("youtube: keeping the static template: {error:#}"),
+                );
+                None
+            }
+        };
+        Ok((prompt, youtube))
+    })?;
+    let mut image_prompt = retry::Prompt::new(image_prompt_text, cfg.image_negative_prompt.clone());
+    let youtube_models = youtube::Models {
+        image: &cfg.image_model,
+        audio: &cfg.audio_model,
+        creative: &cfg.creative_model,
+    };
+    let youtube = youtube::compose(vibe, youtube_draft.as_ref(), &youtube_models);
     log(tx, format!("image prompt: {}", image_prompt.positive));
 
     // Free the LLM, then bring up the image server.
@@ -468,6 +486,14 @@ fn run(
             })
             .collect();
 
+        let youtube_file = root.join("youtube.txt");
+        std::fs::write(&youtube_file, &youtube.description)
+            .context("saving the YouTube description")?;
+        log(
+            tx,
+            format!("youtube: {} ({})", youtube.title, youtube_file.display()),
+        );
+
         let meta = serde_json::json!({
             "slug": slug,
             "source_url": url,
@@ -509,6 +535,12 @@ fn run(
                 "size": format!("{}x{}", cfg.video_width, cfg.video_height),
                 "renderer": renderer,
                 "particles": particles,
+            },
+            "youtube": {
+                "title": &youtube.title,
+                "description": &youtube.description,
+                "hashtags": &youtube.hashtags,
+                "file": youtube_file.display().to_string(),
             },
             "retry": {
                 "rounds": rounds,

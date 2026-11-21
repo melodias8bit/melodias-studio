@@ -8,7 +8,7 @@ PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 BIN := target/release/melodias
 
-.PHONY: help run generate image judge score history dashboard render video backfill refs build check skills-check fmt test install uninstall deploy status log clean
+.PHONY: help run generate image judge score youtube history dashboard render video backfill refs build check skills-check fmt test install uninstall deploy status log clean
 
 help:
 	@printf '%s\n' \
@@ -20,6 +20,7 @@ help:
 	  '  make image DIR=output/<slug>         regenerate the thumbnail of a finished run' \
 	  '  make judge DIR=output/<slug>         review a finished run with the judge' \
   '  make score DIR=output/<slug>         score a finished run, no GPU' \
+  '  make youtube DIR=output/<slug>       YouTube copy for a finished run, no GPU' \
   '  make history [ARGS=findings]         read the local history database' \
   '  make dashboard                       serve the read-only dashboard on 127.0.0.1' \
   '  make backfill [ARGS=--replace]       score the runs in output/ into the history DB' \
@@ -61,6 +62,10 @@ judge:
 score:
 	@test -n "$(DIR)" || { echo 'missing DIR, for example: make score DIR=output/<slug>'; exit 2; }
 	$(CARGO) run --release -- score "$(DIR)"
+
+youtube:
+	@test -n "$(DIR)" || { echo 'missing DIR, for example: make youtube DIR=output/<slug>'; exit 2; }
+	$(CARGO) run --release -- youtube "$(DIR)" $(ARGS)
 
 backfill:
 	$(CARGO) run --release -- backfill $(ARGS)

@@ -23,6 +23,22 @@ fn accepts_only_valid_indices() {
 }
 
 #[test]
+fn reads_opencode_text_and_skips_thoughts() {
+    let parsed = json!({
+        "candidates": [{
+            "content": {
+                "parts": [
+                    { "text": "internal reasoning", "thought": true },
+                    { "text": "{\"title\":\"night drive\"}" }
+                ]
+            }
+        }]
+    });
+    assert_eq!(answer_text(&parsed).unwrap(), "{\"title\":\"night drive\"}");
+    assert!(answer_text(&json!({})).is_err());
+}
+
+#[test]
 fn parses_and_normalizes_must_fix() {
     let value = json!([
         { "code": "Eyes!", "target": "image 2", "reason": "  too much glow  " },

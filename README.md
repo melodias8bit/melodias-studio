@@ -2,14 +2,14 @@
 
 # melodias-studio
 
-A Rust TUI that generates 8-bit thumbnails, original three to four minute instrumental chiptunes and a 1080p video for a YouTube channel, using local models.
+A Rust TUI that generates 8-bit thumbnails, original three to four minute instrumental chiptunes, a 1080p video for a YouTube channel and the upload description, using local models.
 
 ## Quick Start
 
 Requires Rust 1.85+, `yt-dlp`, `ffmpeg`, `ffprobe` and three local HTTP services. See [setup](docs/setup.md) for the service contract and an example deployment.
 
 ```bash
-git clone https://github.com/jd-apprentice/melodias-studio.git
+git clone https://github.com/melodias8bit/melodias-studio.git
 cd melodias-studio
 make install
 melodias

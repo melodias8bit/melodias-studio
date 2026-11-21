@@ -1,11 +1,12 @@
 // Read-only dashboard for the melodias history database. It polls one JSON
 // summary and redraws; there is no build step and no external dependency.
-// Clicking a run opens a detail panel with its media, judge verdict, meta,
+// Clicking a run opens a full screen view with its media, judge verdict, meta,
 // candidates, findings, patches and every artifact on disk.
 
 const REFRESH_MS = 60000;
 const TABLE_ROWS = 50;
 const SVG_NS = "http://www.w3.org/2000/svg";
+const HOME_TITLE = "melodias · history";
 
 // Human names for the deterministic finding codes. The code stays available in
 // the tooltip and under the name in the run detail, but the charts read better
@@ -32,6 +33,8 @@ function findingLabel(code) {
 let timer = null;
 let busy = false;
 let detailId = null;
+let overviewScroll = 0;
+let returnFocus = null;
 let lastData = null;
 let resizeTimer = null;
 
@@ -518,16 +521,68 @@ function renderEmpty(data) {
   }
 }
 
-// --- Run detail -----------------------------------------------------------
+// --- Run detail screen ----------------------------------------------------
+
+function currentRunId() {
+  return new URLSearchParams(location.search).get("run");
+}
+
+function clearActiveNav() {
+  for (const link of document.querySelectorAll(".nav-link")) {
+    link.classList.remove("is-active");
+    link.removeAttribute("aria-current");
+  }
+}
+
+function showDetail() {
+  const detail = document.getElementById("detail");
+  if (!detail.hidden) return;
+  overviewScroll = window.scrollY;
+  returnFocus = document.activeElement;
+  clearActiveNav();
+  document.getElementById("overview").hidden = true;
+  detail.hidden = false;
+  window.scrollTo(0, 0);
+  document.getElementById("detail-title").focus({ preventScroll: true });
+}
+
+function closeDetail(updateUrl = true) {
+  if (detailId === null) return;
+  const inAppEntry = Boolean(
+    updateUrl && history.state && history.state.run !== undefined,
+  );
+  detailId = null;
+  document.getElementById("detail").hidden = true;
+  document.getElementById("overview").hidden = false;
+  document.title = HOME_TITLE;
+  const home = document.querySelector("[data-nav='overview']");
+  if (home) activate(home);
+  window.scrollTo(0, overviewScroll);
+  if (returnFocus && returnFocus.isConnected) {
+    returnFocus.focus({ preventScroll: true });
+  }
+  returnFocus = null;
+  if (inAppEntry) {
+    history.back();
+  } else if (updateUrl) {
+    history.replaceState(null, "", location.pathname);
+  }
+}
 
 function openRun(id, updateUrl = true) {
-  detailId = id;
+  const run = String(id);
+  const replace = detailId !== null && Boolean(history.state && history.state.run !== undefined);
+  detailId = run;
   if (updateUrl) {
-    history.replaceState(null, "", `?run=${encodeURIComponent(id)}`);
+    const url = `?run=${encodeURIComponent(run)}`;
+    if (replace) {
+      history.replaceState({ run }, "", url);
+    } else {
+      history.pushState({ run }, "", url);
+    }
   }
-  const dialog = document.getElementById("detail");
-  if (!dialog.open) dialog.showModal();
-  loadDetail(id);
+  showDetail();
+  loadDetail(run);
 }
 
 async function loadDetail(id, quiet = false) {
@@ -918,6 +973,7 @@ function jsonSection(detail) {
 }
 
 function renderDetail(detail) {
+  document.title = `#${detail.id} · ${detail.slug} · melodias`;
   document.getElementById("detail-title").textContent = `#${detail.id} · ${detail.slug}`;
   document.getElementById("detail-sub").textContent = [detail.vibe, when(detail.started_at)]
     .filter(Boolean)
@@ -1025,6 +1081,7 @@ for (const button of document.querySelectorAll("[data-nav='overview']")) {
     view.runFilter = "all";
     view.findingSource = "all";
     activate(button);
+    closeDetail();
     if (lastData) {
       renderFindingsChart(lastData);
       renderRunsTable(lastData);
@@ -1037,6 +1094,7 @@ for (const button of document.querySelectorAll("[data-run-filter]")) {
   button.addEventListener("click", () => {
     view.runFilter = button.dataset.runFilter;
     activate(button);
+    closeDetail();
     if (lastData) renderRunsTable(lastData);
     scrollToPanel("runs-panel");
   });
@@ -1046,6 +1104,7 @@ for (const button of document.querySelectorAll("[data-source]")) {
   button.addEventListener("click", () => {
     view.findingSource = button.dataset.source;
     activate(button);
+    closeDetail();
     if (lastData) renderFindingsChart(lastData);
     scrollToPanel("findings-panel");
   });
@@ -1104,20 +1163,31 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) refresh();
 });
 
-document.getElementById("detail-close").addEventListener("click", () => {
-  document.getElementById("detail").close();
+document.getElementById("detail-back").addEventListener("click", () => {
+  closeDetail();
 });
 
 document.getElementById("detail-reload").addEventListener("click", () => {
   if (detailId !== null) loadDetail(detailId);
 });
 
-document.getElementById("detail").addEventListener("close", () => {
-  detailId = null;
-  if (location.search) history.replaceState(null, "", location.pathname);
+window.addEventListener("popstate", () => {
+  const id = currentRunId();
+  if (id) {
+    openRun(id, false);
+  } else {
+    closeDetail(false);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && detailId !== null) {
+    event.preventDefault();
+    closeDetail();
+  }
 });
 
 renderLegend();
-const initialRun = new URLSearchParams(location.search).get("run");
+const initialRun = currentRunId();
 if (initialRun) openRun(initialRun, false);
 refresh();
