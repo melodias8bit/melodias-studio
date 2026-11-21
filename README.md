@@ -21,6 +21,7 @@ melodias
 | --- | --- |
 | Requirements, install and server scripts | [docs/setup.md](docs/setup.md) |
 | TUI, headless run, output and screenshots | [docs/usage.md](docs/usage.md) |
+| Local history dashboard | [dashboard/README.md](dashboard/README.md) |
 | Environment, `config.toml` and lifecycle commands | [docs/configuration.md](docs/configuration.md) |
 | Pipeline, diagram and design notes | [docs/architecture/README.md](docs/architecture/README.md) |
 | Design documents (RFCs) | [docs/rfcs/README.md](docs/rfcs/README.md) |
