@@ -124,7 +124,9 @@ file.
 ## Verification
 
 - Full gate: `make check`.
-- Pipeline order test: `cargo test draws_without_leaving_the_terminal`.
+- Stage label test: `cargo test writes_a_clean_log` asserts the `1/11` labels in
+  `src/tests/main.rs`.
+- TUI layout and snapshot test: `cargo test draws_without_leaving_the_terminal`.
 - Score a finished run without a GPU: `make score DIR=output/<slug>` or
   `cargo run --release -- score output/<slug>`.
 - Read the stop reason after a short run: `jq '.retry.stop' output/<slug>/meta.json`.

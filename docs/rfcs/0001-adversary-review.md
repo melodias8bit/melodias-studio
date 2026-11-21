@@ -1,6 +1,6 @@
 # Adversary review and video assembly
 
-Status: in progress. Phases 1, 2 and the cloud judge are implemented, and so is the assembly with ffmpeg and Remotion. The pipeline renders with Remotion by default; ffmpeg is the explicit fast path. The local hard gates and the retry loop are not. The judge preselects the pair and the TUI keeps the manual override.
+Status: in progress. Phases 1, 2 and the cloud judge are implemented, and so is the assembly with ffmpeg and Remotion. The pipeline renders with Remotion by default; ffmpeg is the explicit fast path. The local hard gates are not; the deterministic retry loop is specified in RFC 0002 and implemented. The judge preselects the pair and the TUI keeps the manual override.
 
 ## Why
 

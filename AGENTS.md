@@ -4,7 +4,7 @@ Rust 1.85+ (edition 2024) TUI + CLI (binary `melodias`). A source URL and a vibe
 
 ## Commands
 
-- Gate: `make check` runs `cargo fmt --check`, `cargo build`, `cargo clippy --all-targets -- -D warnings`, then `cargo test`, in that order. There is no CI. Run it before finishing; do not reformat unrelated files.
+- Gate: `make check` runs `cargo fmt --check`, `cargo build`, `cargo clippy --all-targets -- -D warnings`, then `cargo test`, then `scripts/check-skills.sh`, in that order. There is no CI. Run it before finishing; do not reformat unrelated files.
 - Single test: `cargo test <name>`. The suite needs no services, GPU or network. Tests live in `src/tests/<module>.rs` and are wired with `#[path = "..."] mod tests;`; `src/chip/*` and `src/refs/*` point at `../tests/`.
 - `make run` (TUI); `make generate URL='...' VIBE='...'` (release headless, log `output/run-<timestamp>.log`); `make log` tails the newest; `make install` copies the release binary to `~/.local/bin/melodias`.
 - `make image|judge|score|render|video DIR=output/<slug>`, `make history [ARGS='findings']`, `make dashboard`, `make backfill [ARGS=--replace]`, `make refs ARGS=...`. They use `cargo run --release`, so the first one builds release.
@@ -63,10 +63,11 @@ References and optional commands:
 
 - Defaults point at one GPU box (`192.168.88.38`). `deploy/env.sh` holds host paths, ports and model paths; `serve-{llm,sd,audio}.sh` each answer `start|stop|status`; `make deploy` copies them plus `audio-server.json` to `REMOTE_BIN_DIR`/`REMOTE_CONFIG_DIR`.
 - `docs/configuration.md` is the reference for every env var, config key and output format. `docs/setup.md` covers services, `docs/usage.md` covers flows, `docs/video.md` covers the renderer, and `dashboard/README.md` covers the charts.
-- Docs lag the code: `docs/architecture/README.md` still draws the ffmpeg video, and `docs/roadmap.md` plus the RFC 0001 status still say video assembly or the retry loop is missing. Trust `src/` (`src/video.rs`, `src/pipeline.rs`) and update the docs when behavior is confirmed. The five editorial axes and their weights from RFC 0002 are still unimplemented.
+- Docs can lag the code: trust `src/` (`src/video.rs`, `src/pipeline.rs`) and update the docs when behavior is confirmed. The five editorial axes and their weights from RFC 0002 are still unimplemented.
 
 ## Agent skills
 
-- Repo-owned skills live in `.agents/skills/`: `melodias-pipeline`, `melodias-render` and `melodias-config`. They encode the 11 stages, the Remotion/ffmpeg split and config precedence; update them when that behavior changes.
+- Repo-owned skills live in `.agents/skills/`: `melodias-pipeline`, `melodias-render`, `melodias-config`, `melodias-testing`, `melodias-history` and `melodias-refs`. They encode the 11 stages, the Remotion/ffmpeg split, config precedence, the inline test layout, the history/dashboard rules and the reference library; update them when that behavior changes.
+- `make skills-check` (also the last step of `make check`) validates every skill's frontmatter, the repository paths it cites, and the `make` targets and test names it mentions. Keep skills in English and without em dashes.
 - Registry skills (`rust-best-practices`, `rust-testing`, `ratatui-tui`, `ffmpeg`) are pinned by source commit in `skills-lock.json`. Refresh with `npx skills add <repo> -s <skill> -a opencode -y` and review the diff.
 - `ratatui-tui` targets 0.30 while the repo pins 0.29, and `rust-testing` suggests crates that are not dependencies. Use their patterns, not their setup steps.

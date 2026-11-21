@@ -32,9 +32,10 @@ it is user-only and must never be committed.
 Database resolution: `MELODIAS_DB`, then `db_path` from the file, then `history.db` next to the
 config file. `MELODIAS_DB` is the only way to move the database without editing the file.
 
-`OUT_DIR` changes where runs are written (default `output`). It is read from the environment
-only; a relative path is resolved against the current directory. The Makefile has separate
-`LOG_DIR` and `PREFIX` variables that affect make targets, not the binary.
+`OUT_DIR` changes where runs are written (default `output`). Both the environment variable and
+the `out_dir` file key work, in the usual env > file > default order; a relative path is
+resolved against the current directory. The Makefile has separate `LOG_DIR` and `PREFIX`
+variables that affect make targets, not the binary.
 
 ## High-impact settings
 
@@ -47,15 +48,23 @@ only; a relative path is resolved against the current directory. The Makefile ha
 | `AUDIO_MODEL` | `audio_model` | `ace-step` | Model name sent to the audio server |
 | `SSH_HOST` | `ssh_host` | `root@192.168.88.38` | Empty in the file means local |
 | `REMOTE_REF_DIR` | `remote_ref_dir` | `/models/ref` | Where the reference is pushed |
-| `*_START_CMD`, `*_STOP_CMD` | same | `/home/ubuntu/bin/serve-*.sh` | Run over SSH, or locally without SSH |
+| `*_START_CMD`, `*_STOP_CMD` | same | `/home/ubuntu/bin/serve-*.sh start\|stop` | Run over SSH, or locally without SSH |
 | `OUT_DIR` | `out_dir` | `output` | Run directory root |
 | `MELODIAS_DB` | `db_path` | next to config | History database |
 | `DURATION_SEC` | `duration_sec` | `210` | Final track length |
 | `STEPS`, `GUIDANCE`, `SAMPLER` | same | `32`, `5.0`, `heun` | Final audio generation |
+| `WIDTH`, `HEIGHT` | same | `1280`, `720` | Thumbnail size |
+| `IMAGE_STEPS` | `image_steps` | `20` | sd-server sampling steps |
+| `AUDIO_STYLE`, `IMAGE_STYLE` | same | `8-bit chiptune`, `8-bit pixel art` | Fixed medium and look |
+| `AUDIO_DRAFT_SEC`, `AUDIO_DRAFT_STEPS` | same | `60`, `16` | Short review drafts |
+| `AUDIO_DRAFT_SAMPLER` | `audio_draft_sampler` | `euler` | Draft sampler |
 | `CANDIDATES` | `candidates` | `3` | Per modality; pool capped at 9 |
 | `SCORE_ROUNDS` | `score_rounds` | `2` | `0` disables retries |
+| `FADE_IN_SEC`, `FADE_OUT_SEC` | same | `1.5`, `3.0` | Mastering fades |
+| `LOUDNESS_LUFS` | `loudness_lufs` | `-15.0` | Master loudness target |
 | `VIDEO_RENDERER` | `video_renderer` | `remotion` | `remotion` or `ffmpeg` |
 | `VIDEO_PARTICLES` | `video_particles` | `both` | `both`, `bokeh` or `sparks` |
+| `VIDEO_WIDTH`, `VIDEO_HEIGHT` | same | `1920`, `1080` | Render size |
 | `VIDEO_PROJECT` | `video_project` | `video` | Resolved against the current directory |
 | `IMAGE_REFERENCES` | `image_references` | empty | Optional concept folder |
 | `IMAGE_REFERENCE_COUNT` | `image_reference_count` | `3` | References sent per generation |
@@ -63,8 +72,16 @@ only; a relative path is resolved against the current directory. The Makefile ha
 | `IMAGE_SEED` | `image_seed` | random | Reproducible image batch |
 | `AUDIO_REFERENCE` | `audio_reference` | empty | Replaces the source window |
 | `REFERENCE_SEC` | `reference_sec` | `60` | Reference length after normalization |
+| `PIXABAY_API_KEY` | `pixabay_api_key` | empty | Key for `melodias refs fetch --source pixabay` |
 | `JUDGE_ENABLED` | `judge_enabled` | `true` | No key means no-op |
 | `JUDGE_PROVIDER` | `judge_provider` | `auto` | `opencode`, `openrouter` or `auto` |
+| `JUDGE_MODEL` | `judge_model` | `gemini-4-argon` | OpenCode Go model |
+| `JUDGE_IMAGE_PX`, `JUDGE_AUDIO_SEC` | same | `768`, `15` | Evidence compressed before the judge |
+| `JUDGE_TIMEOUT_SEC` | `judge_timeout_sec` | `300` | Judge request timeout |
+
+`OPENCODE_API_KEY` and `OPENROUTER_API_KEY` also come from the file or the environment, and
+`GPU_LABEL` only changes the header text. The full list lives in `docs/configuration.md`; when
+the two disagree, `src/config.rs` wins.
 
 Booleans accept `1`, `true`, `yes` and `on` (case-insensitive). Numbers parse with `FromStr`; an
 unparseable environment value is discarded and the file or default wins. Do not assume a typo

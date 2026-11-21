@@ -11,7 +11,8 @@ vibe + reference URL
         ├─ review ─────────► manual pick of one image and one draft
         ├─ audiocpp_server ► final take from the chosen draft seed
         ├─ ffmpeg ─────────► fade-in/out + loudnorm -15 LUFS
-        └─ ffmpeg ─────────► video.mp4 (zoom, particles, waveform)
+        └─ remotion ───────► video.mp4 (overlays, waveform, branding)
+                              ffmpeg is the explicit fast path
 ```
 
 The reference only conditions timbre. The pipeline does not convert the source: the thumbnail and the track are new material generated from the vibe.
@@ -33,7 +34,7 @@ node ~/.agents/skills/archify/bin/archify.mjs finalize architecture docs/archite
 - **The medium is a rule.** Images are pinned to `IMAGE_STYLE` (default 8-bit pixel art) and audio to `AUDIO_STYLE` (default 8-bit chiptune). The vibe adds mood and references, not the medium.
 - **Every track is instrumental.** The vibe is sent as `<vibe>, instrumental` and `options.negative_prompt` lists vocals, singing, choir, lyrics and humming. ACE-Step uses that text as the unconditional CFG prompt, so it steers away from voices instead of hoping the caption is ignored.
 - **The audio parameters travel inside `options`.** `/v1/tasks/run` only forwards the nested `options` object to the ACE-Step parser, so `duration_sec`, `reference_audio` and `sampler_mode` at the top level of `request` are silently dropped. Sent inside `options`, `duration_sec` returns an exact length.
-- **The video is regenerable.** `media::assemble_video` turns the chosen still and the mastered track into a 1080p video with a slow zoom, moving sprite particles, the waveform and edge fades. The particles are soft radial sprites overlaid with `eval=frame`, because `drawbox` evaluates its positions only once. The pipeline calls it at the end, and `melodias video <dir>` can rebuild it from a finished run.
+- **The video is regenerable.** `video::render` renders the chosen still and the mastered track with Remotion by default (overlays, waveform and branding) and uses `media::assemble_video` only when `VIDEO_RENDERER=ffmpeg`; there is no silent fallback. The ffmpeg path builds a 1080p video with a slow zoom, moving sprite particles, the waveform and edge fades; the particles are soft radial sprites overlaid with `eval=frame`, because `drawbox` evaluates its positions only once. The pipeline calls the renderer at the end, `melodias render <dir>` rebuilds with Remotion and `melodias video <dir>` with ffmpeg.
 - **The take is the song, not a loop.** ACE-Step writes its own intro and outro, so the master keeps both: it normalizes to `LOUDNESS_LUFS`, fades in over `FADE_IN_SEC` and fades out over `FADE_OUT_SEC`. Nothing is crossfaded back into the intro. The prompt asks for a soft intro that builds and a resolved outro.
 - **Eyes are a prompt rule.** The image system message asks for natural eyes with a visible iris and pupil, and `IMAGE_NEGATIVE_PROMPT` steers sd-server away from glowing, neon or empty eyes. The 4B used to write "glowing red eyes" for dramatic prompts.
 - **Image candidates are reproducible.** The image seed and steps travel inside `sd_cpp_extra_args`, which the server strips before generation. The same seed and steps return the same image, so a candidate can be replayed.

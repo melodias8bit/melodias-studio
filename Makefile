@@ -8,7 +8,7 @@ PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 BIN := target/release/melodias
 
-.PHONY: help run generate image judge score history dashboard render video backfill refs build check fmt test install uninstall deploy status log clean
+.PHONY: help run generate image judge score history dashboard render video backfill refs build check skills-check fmt test install uninstall deploy status log clean
 
 help:
 	@printf '%s\n' \
@@ -30,7 +30,8 @@ help:
 	  '  make video DIR=output/<slug>         fast video with ffmpeg' \
 	  '  make uninstall                       removes the installed binary' \
 	  '  make log                             last lines of the newest log' \
-	  '  make check                           fmt + build + clippy -D warnings + tests' \
+	  '  make check                           fmt + build + clippy + tests + skills' \
+	  '  make skills-check                    validate the agent skills' \
 	  '  make status                          state of llm, sd and audio on the VM' \
 	  '  make deploy                          copy deploy/ to the VM' \
 	  '  make clean                           cargo clean'
@@ -87,6 +88,10 @@ check:
 	$(CARGO) build
 	$(CARGO) clippy --all-targets -- -D warnings
 	$(CARGO) test
+	./scripts/check-skills.sh
+
+skills-check:
+	./scripts/check-skills.sh
 
 fmt:
 	$(CARGO) fmt
