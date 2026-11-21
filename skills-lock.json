@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "skills": {
+    "ffmpeg": {
+      "source": "digitalsamba/claude-code-video-toolkit",
+      "commit": "ad8b4ecb912a9073be11e3d8aff7c158a883e1a2",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ffmpeg/SKILL.md",
+      "computedHash": "ff8e85c81bac9a0bc655b94893f06e60e34c42f3faa98ee60e2cdd51a0215013"
+    },
+    "ratatui-tui": {
+      "source": "blacktop/dotfiles",
+      "commit": "7f949ed0e3266a8723466c62c67bb3459576384e",
+      "sourceType": "github",
+      "skillPath": "ai/skills/ratatui-tui/SKILL.md",
+      "computedHash": "48d2e321346546eb8894e372a96c0237a5991ef68a064a7a159643e4c1d6af40"
+    },
+    "rust-best-practices": {
+      "source": "apollographql/skills",
+      "commit": "9dda1397730370aeb8df4ff8f2015c34c86b5003",
+      "sourceType": "github",
+      "skillPath": "skills/rust-best-practices/SKILL.md",
+      "computedHash": "7e12e68aa50152eb7ba9ea1f88ca5380c846ea0175f8ab6788bb79b7faf12ca0"
+    },
+    "rust-testing": {
+      "source": "affaan-m/ECC",
+      "commit": "4adeee6732a12d1540f49a4d50a38ce8c97f9a53",
+      "sourceType": "github",
+      "skillPath": "skills/rust-testing/SKILL.md",
+      "computedHash": "4a16853504a8d9ee1af3abb29e4db9b506ddc46f5ef6bafff45193a1a1a1e520"
+    }
+  }
+}

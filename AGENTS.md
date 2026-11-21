@@ -64,3 +64,9 @@ References and optional commands:
 - Defaults point at one GPU box (`192.168.88.38`). `deploy/env.sh` holds host paths, ports and model paths; `serve-{llm,sd,audio}.sh` each answer `start|stop|status`; `make deploy` copies them plus `audio-server.json` to `REMOTE_BIN_DIR`/`REMOTE_CONFIG_DIR`.
 - `docs/configuration.md` is the reference for every env var, config key and output format. `docs/setup.md` covers services, `docs/usage.md` covers flows, `docs/video.md` covers the renderer, and `dashboard/README.md` covers the charts.
 - Docs lag the code: `docs/architecture/README.md` still draws the ffmpeg video, and `docs/roadmap.md` plus the RFC 0001 status still say video assembly or the retry loop is missing. Trust `src/` (`src/video.rs`, `src/pipeline.rs`) and update the docs when behavior is confirmed. The five editorial axes and their weights from RFC 0002 are still unimplemented.
+
+## Agent skills
+
+- Repo-owned skills live in `.agents/skills/`: `melodias-pipeline`, `melodias-render` and `melodias-config`. They encode the 11 stages, the Remotion/ffmpeg split and config precedence; update them when that behavior changes.
+- Registry skills (`rust-best-practices`, `rust-testing`, `ratatui-tui`, `ffmpeg`) are pinned by source commit in `skills-lock.json`. Refresh with `npx skills add <repo> -s <skill> -a opencode -y` and review the diff.
+- `ratatui-tui` targets 0.30 while the repo pins 0.29, and `rust-testing` suggests crates that are not dependencies. Use their patterns, not their setup steps.
