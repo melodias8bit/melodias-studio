@@ -129,7 +129,7 @@ The file is `history.db` next to `config.toml`, and `MELODIAS_DB` overrides it. 
 
 ### Dashboard
 
-`melodias dashboard` serves a read-only page at `http://127.0.0.1:7373/` with the score over runs, the findings that cost the most and the run table. It opens the database for reading only, never creates or migrates it, and refreshes once a minute, so a finished run appears without reloading. It binds localhost only.
+`melodias dashboard` serves a read-only page at `http://127.0.0.1:7373/` with the score over runs, the findings that cost the most, the outcome mix and the run table. The home also shows totals for runs, acceptance, spend, time, findings, lost points, candidates and retry patches. A left sidebar filters the runs table by outcome and the findings chart by source, and links to the latest and best run. Clicking a run opens its detail: thumbnail, video and audio, the judge verdict, the candidates with their scores and prompts, the findings, the applied patches, every file saved under the run directory and the raw `meta.json`, `score.json` and `verdict.json`. The media is served by the same process with byte-range support, so the video can seek. It opens the database for reading only, never creates or migrates it, and refreshes the summary once a minute; the detail refreshes on demand. It binds localhost only.
 
 ```bash
 melodias dashboard
@@ -138,7 +138,9 @@ melodias dashboard --port 8080 --limit 500
 make dashboard
 ```
 
-The page is served by the binary from `dashboard/`, with no Node, no build step and no network. `--limit` sets how many runs the charts and the API read (200 by default).
+The page is served by the binary from `dashboard/`, with no Node, no build step and no network. `--limit` sets how many runs the charts and the API read (200 by default). The files are looked up under `OUT_DIR` by slug, so the detail also works for a run nested one level deeper, like `output/retry-check/<slug>/`. The URL `?run=<id>` opens a run detail directly, and the media links use inline content disposition, so a `.wav` plays in the browser instead of downloading.
+
+See [dashboard/README.md](../dashboard/README.md) for screenshots and the endpoint list.
 
 ### Produced video with Remotion
 

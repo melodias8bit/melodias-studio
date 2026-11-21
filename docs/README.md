@@ -8,7 +8,7 @@ The root [README](../README.md) is the landing page. Everything else lives here.
 | TUI, headless run, output and screenshots | [usage.md](usage.md) |
 | Video renderer and effects options | [video.md](video.md) |
 | Environment variables, `config.toml` and lifecycle commands | [configuration.md](configuration.md) |
-| Local history dashboard | [usage.md](usage.md#dashboard) |
+| Local history dashboard | [dashboard/README.md](../dashboard/README.md) |
 | Pipeline, diagram and design notes | [architecture/README.md](architecture/README.md) |
 | Design documents (RFCs) | [rfcs/README.md](rfcs/README.md) |
 | Adversary review and video assembly | [rfcs/0001-adversary-review.md](rfcs/0001-adversary-review.md) |

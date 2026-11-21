@@ -201,6 +201,8 @@ The judge receives the deterministic findings and returns `must_fix` codes in `v
 
 `melodias dashboard` serves a read-only page over the same file at `http://127.0.0.1:7373/`. It binds localhost only, opens the database for reading and polls it once a minute, so new runs appear without a reload. `--port` changes the address and `--limit` the run window (200 by default). The page is a Rust binary plus static files in `dashboard/`; there is no Node and no build step.
 
+The run detail reads the stored documents next to the database: `meta.json`, `work/score.json` and `work/judge/verdict.json`, plus every image, audio and video under the run directory. The server finds the directory by slug under `OUT_DIR`, serves the files itself only inside that directory and supports HTTP byte ranges for the video. It never writes to the run directory.
+
 ## GPU lifecycle commands
 
 They run between stages, over SSH when `SSH_HOST` is set. The defaults point at the `deploy/` scripts; override or empty them to manage the servers by hand:
