@@ -25,6 +25,8 @@ cp config.example.toml ~/.config/melodias-studio/config.toml
 | `GPU_LABEL` | `local models` | label in the header and the splash |
 | `AUDIO_STYLE` | `8-bit chiptune` | fixed medium added to every audio prompt |
 | `IMAGE_STYLE` | `8-bit pixel art` | style pinned in the image prompt system message |
+| `IMAGE_MODEL` | `MOSS-Image-SFT-UD-Q4_K_XL` | image model label in the YouTube description |
+| `CREATIVE_MODEL` | `Qwen3-4B-Instruct-2507` | LLM model label in the YouTube description |
 | `IMAGE_NEGATIVE_PROMPT` | `glowing eyes, neon eyes, empty eyes, oversaturated eyes, text, watermark, signature, extra fingers, deformed hands` | negative prompt sent to sd-server |
 | `DURATION_SEC` | `210` | take length |
 | `STEPS` | `32` | diffusion steps |

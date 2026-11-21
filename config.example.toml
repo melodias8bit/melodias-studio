@@ -34,6 +34,9 @@
 # or a MIDI-driven chip bounce. Replaces a window of the source video.
 # audio_reference = "/path/to/loop.wav"
 # image_style = "8-bit pixel art"
+# Model labels for the YouTube description (tool + model), not request fields.
+# image_model = "MOSS-Image-SFT-UD-Q4_K_XL"
+# creative_model = "Qwen3-4B-Instruct-2507"
 # image_negative_prompt = "glowing eyes, neon eyes, empty eyes, oversaturated eyes, text, watermark, signature"
 # gpu_label = "local models"
 # duration_sec = 210

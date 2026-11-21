@@ -1,13 +1,13 @@
 # melodias-studio
 
-Rust 1.85+ (edition 2024) TUI + CLI (binary `melodias`). A source URL and a vibe produce `output/<slug>/` with `thumbnail.png`, `audio.mp3`, `video.mp4`, `meta.json`, `candidates/` and `work/`. The reference only conditions timbre: the thumbnail and track are new material. No args opens the TUI, `<url> <vibe>` runs headless, and the remaining subcommands inspect or rework runs, history, references, or a single track.
+Rust 1.85+ (edition 2024) TUI + CLI (binary `melodias`). A source URL and a vibe produce `output/<slug>/` with `thumbnail.png`, `audio.mp3`, `video.mp4`, `youtube.txt`, `meta.json`, `candidates/` and `work/`. The reference only conditions timbre: the thumbnail and track are new material. No args opens the TUI, `<url> <vibe>` runs headless, and the remaining subcommands inspect or rework runs, history, references, or a single track.
 
 ## Commands
 
 - Gate: `make check` runs `cargo fmt --check`, `cargo build`, `cargo clippy --all-targets -- -D warnings`, then `cargo test`, then `scripts/check-skills.sh`, in that order. There is no CI. Run it before finishing; do not reformat unrelated files.
 - Single test: `cargo test <name>`. The suite needs no services, GPU or network. Tests live in `src/tests/<module>.rs` and are wired with `#[path = "..."] mod tests;`; `src/chip/*` and `src/refs/*` point at `../tests/`.
 - `make run` (TUI); `make generate URL='...' VIBE='...'` (release headless, log `output/run-<timestamp>.log`); `make log` tails the newest; `make install` copies the release binary to `~/.local/bin/melodias`.
-- `make image|judge|score|render|video DIR=output/<slug>`, `make history [ARGS='findings']`, `make dashboard`, `make backfill [ARGS=--replace]`, `make refs ARGS=...`. They use `cargo run --release`, so the first one builds release.
+- `make image|judge|score|youtube|render|video DIR=output/<slug>`, `make history [ARGS='findings']`, `make dashboard`, `make backfill [ARGS=--replace]`, `make refs ARGS=...`. They use `cargo run --release`, so the first one builds release.
 - `make backfill` needs `ffmpeg`, ImageMagick and `tesseract`; `make refs` needs ImageMagick for images inside packs; `make deploy` and `make status` need SSH to the GPU host; the rest runs locally.
 - `make dashboard` serves read-only charts on `http://127.0.0.1:7373/`.
 - TUI screenshots are generated, not hand-captured: `DUMP_TUI_HTML_DIR=/tmp/tui cargo test draws_without_leaving_the_terminal`; `PRINT_TUI=1` prints the buffer as ASCII.
@@ -37,6 +37,7 @@ Runtime and config:
 - `melodias render` resolves `VIDEO_PROJECT` from the current directory (run it from the repo root), copies the still and track into ignored `video/public/current/`, writes ignored `video/props.json`, renders the `showwaves` waveform overlay, writes `work/video-remotion.mp4`, then moves it to `video.mp4`, keeping a previous file as `video-ffmpeg.mp4`.
 - `AUDIO_REFERENCE` replaces the source window as the ACE-Step reference; `ffmpeg` normalizes it to 48 kHz stereo PCM and cuts it to `REFERENCE_SEC` before it is pushed to the GPU host.
 - `melodias judge` only prints the verdict and writes `work/judge/verdict.json`; it does not update `meta.json`. OpenCode Go needs `x-opencode-session` and a non-generic User-Agent, otherwise 400 `MissingSessionID`. OpenRouter audio input needs at least $0.50 of balance.
+- `melodias youtube <dir>` writes the copy offline from the static template; `--opencode` reuses `OPENCODE_API_KEY` and `JUDGE_MODEL` and needs no GPU. Both keep an existing copy unless `--force` or a successful `--opencode` run overwrites it.
 
 Scoring and history:
 

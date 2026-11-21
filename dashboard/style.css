@@ -677,22 +677,21 @@ td.open-cell {
   white-space: nowrap;
 }
 
-/* --- Run detail --------------------------------------------------------- */
+/* --- Run detail screen -------------------------------------------------- */
 
-.detail {
-  width: min(1100px, 94vw);
-  max-height: 92vh;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--panel);
-  color: var(--ink);
-  box-shadow: 0 30px 80px rgb(0 0 0 / 45%);
+.overview {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.detail::backdrop {
-  background: rgb(3 5 9 / 65%);
-  backdrop-filter: blur(2px);
+.detail-screen {
+  flex: 1;
+  width: 100%;
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 22px 32px 40px;
 }
 
 .detail-head {
@@ -701,19 +700,37 @@ td.open-cell {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 20px 12px;
+  padding: 0 0 14px;
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
-  background: var(--panel);
-  z-index: 1;
-  border-radius: 16px 16px 0 0;
+  background: var(--bg);
+  z-index: 2;
 }
 
-.detail-heading h2 {
+.back-link {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  padding: 0;
+  margin: 0 0 6px;
+  cursor: pointer;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.detail-heading h1 {
   margin: 0;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 650;
+}
+
+.detail-heading h1:focus {
+  outline: none;
 }
 
 .detail-heading .hint {
@@ -744,9 +761,7 @@ td.open-cell {
 }
 
 .detail-body {
-  padding: 4px 20px 22px;
-  overflow-y: auto;
-  max-height: calc(92vh - 74px);
+  padding: 4px 0 22px;
 }
 
 .detail-section {
@@ -1100,14 +1115,8 @@ td.open-cell {
 }
 
 @media (max-width: 640px) {
-  .detail {
-    width: 96vw;
-  }
-
-  .detail-head,
-  .detail-body {
-    padding-left: 12px;
-    padding-right: 12px;
+  .detail-screen {
+    padding: 18px 14px 32px;
   }
 
   .detail-table td.message {

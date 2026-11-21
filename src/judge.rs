@@ -469,9 +469,25 @@ fn generate(
     vibe: &str,
     findings: Option<&str>,
 ) -> Result<(Value, Value)> {
+    let parsed = opencode_request(cfg, SYSTEM, gemini_parts(parts, vibe, findings))?;
+    let usage = parsed.get("usageMetadata").cloned().unwrap_or(Value::Null);
+    Ok((extract_json(&answer_text(&parsed)?)?, usage))
+}
+
+/// Text-only request through OpenCode Go. `melodias youtube --opencode` uses
+/// it when the local LLM is off, so it only needs the API key and not the GPU.
+pub fn ask_opencode(cfg: &Config, system: &str, prompt: &str) -> Result<String> {
+    if cfg.opencode_api_key.trim().is_empty() {
+        bail!("OPENCODE_API_KEY is not set");
+    }
+    let parsed = opencode_request(cfg, system, json!([{ "text": prompt }]))?;
+    answer_text(&parsed)
+}
+
+fn opencode_request(cfg: &Config, system: &str, parts: Value) -> Result<Value> {
     let body = json!({
-        "systemInstruction": { "parts": [{ "text": SYSTEM }] },
-        "contents": [{ "role": "user", "parts": gemini_parts(parts, vibe, findings) }],
+        "systemInstruction": { "parts": [{ "text": system }] },
+        "contents": [{ "role": "user", "parts": parts }],
         "generationConfig": { "responseMimeType": "application/json" }
     });
     let url = format!(
@@ -496,8 +512,10 @@ fn generate(
     if !status.is_success() {
         bail!("OpenCode Go {status}: {}", truncate(&text, 500));
     }
-    let parsed: Value = serde_json::from_str(&text).context("OpenCode Go returned invalid JSON")?;
-    let usage = parsed.get("usageMetadata").cloned().unwrap_or(Value::Null);
+    serde_json::from_str(&text).context("OpenCode Go returned invalid JSON")
+}
+
+fn answer_text(parsed: &Value) -> Result<String> {
     let parts = parsed
         .pointer("/candidates/0/content/parts")
         .and_then(Value::as_array)
@@ -515,7 +533,7 @@ fn generate(
             .unwrap_or("empty answer");
         bail!("OpenCode Go returned no text ({blocked})");
     }
-    Ok((extract_json(&answer)?, usage))
+    Ok(answer)
 }
 
 /// Stable per-process id so the gateway can route and cache the session.
