@@ -199,7 +199,7 @@ fn run_dashboard(cfg: config::Config, args: &[String]) -> io::Result<()> {
         eprintln!("--port must be between 1 and 65535");
         std::process::exit(2);
     }
-    dashboard::serve(cfg.db_path.clone(), port, limit.max(1))
+    dashboard::serve(cfg.db_path.clone(), cfg.out_dir.clone(), port, limit.max(1))
         .map_err(|error| io::Error::other(format!("{error:#}")))
 }
 

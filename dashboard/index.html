@@ -9,66 +9,143 @@
   <body>
     <div id="banner" class="banner" role="alert" hidden></div>
 
-    <header class="top">
-      <div class="brand">
-        <span id="live" class="live" title="waiting for the first update"></span>
-        <h1>melodias <span>history</span></h1>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <span id="live" class="live" title="waiting for the first update"></span>
+          <div class="brand-text">
+            <strong>melodias</strong>
+            <span>history</span>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Sections">
+          <button class="nav-link is-active" type="button" data-nav="overview">
+            Overview
+          </button>
+
+          <div class="nav-group">
+            <div class="nav-title">Runs</div>
+            <button class="nav-link" type="button" data-run-filter="all">
+              All runs <span class="nav-count" id="count-all"></span>
+            </button>
+            <button class="nav-link" type="button" data-run-filter="accepted">
+              Accepted <span class="nav-count" id="count-accepted"></span>
+            </button>
+            <button class="nav-link" type="button" data-run-filter="by_limit">
+              By limit <span class="nav-count" id="count-by-limit"></span>
+            </button>
+            <button class="nav-link" type="button" data-run-filter="below">
+              Below target <span class="nav-count" id="count-below"></span>
+            </button>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-title">Findings</div>
+            <button class="nav-link" type="button" data-source="all">All sources</button>
+            <button class="nav-link" type="button" data-source="image">Images</button>
+            <button class="nav-link" type="button" data-source="audio">Audio</button>
+          </div>
+
+          <div class="nav-group">
+            <div class="nav-title">Shortcuts</div>
+            <button class="nav-link" type="button" id="nav-latest">Latest run</button>
+            <button class="nav-link" type="button" id="nav-best">Best run</button>
+          </div>
+        </nav>
+
+        <div class="sidebar-foot">
+          <span id="stamp" class="mono"></span>
+        </div>
+      </aside>
+
+      <div class="content">
+        <header class="top">
+          <div>
+            <h1>Overview</h1>
+            <p class="hint" id="top-hint"></p>
+          </div>
+        </header>
+
+        <main>
+          <section class="cards" id="cards" aria-label="Totals"></section>
+
+          <p id="empty" class="empty" hidden>
+            <strong>No runs yet.</strong>
+            <span id="empty-detail"></span>
+          </p>
+
+          <section class="panel" id="score-panel">
+            <div class="panel-head">
+              <h2>Score over runs</h2>
+              <div id="legend" class="legend" aria-hidden="true"></div>
+            </div>
+            <svg
+              id="score-chart"
+              class="chart"
+              viewBox="0 0 900 320"
+              role="img"
+              aria-label="Technical, editorial and total score per run"
+            ></svg>
+          </section>
+
+          <div class="split">
+            <section class="panel" id="findings-panel">
+              <div class="panel-head">
+                <h2>What costs the most</h2>
+                <p class="hint" id="findings-hint"></p>
+              </div>
+              <svg
+                id="findings-chart"
+                class="chart"
+                viewBox="0 0 900 120"
+                role="img"
+                aria-label="Lost points per finding"
+              ></svg>
+            </section>
+
+            <section class="panel" id="outcomes-panel">
+              <div class="panel-head">
+                <h2>Outcomes</h2>
+                <p class="hint">accepted, by limit and below target</p>
+              </div>
+              <svg
+                id="outcomes-chart"
+                class="chart outcomes"
+                viewBox="0 0 420 70"
+                role="img"
+                aria-label="Runs per outcome"
+              ></svg>
+              <div id="outcomes-legend" class="outcome-legend"></div>
+            </section>
+          </div>
+
+          <section class="panel" id="runs-panel">
+            <div class="panel-head">
+              <h2>Runs</h2>
+              <p class="hint" id="runs-hint"></p>
+            </div>
+            <div class="table-wrap">
+              <table id="runs"></table>
+            </div>
+          </section>
+        </main>
       </div>
-      <div class="meta">
-        <span id="stamp" class="mono"></span>
+    </div>
+
+    <dialog id="detail" class="detail" aria-labelledby="detail-title">
+      <div class="detail-head">
+        <div class="detail-heading">
+          <h2 id="detail-title">Run</h2>
+          <p id="detail-sub" class="hint"></p>
+        </div>
+        <div class="detail-actions">
+          <button id="detail-reload" class="button" type="button">Reload</button>
+          <button id="detail-close" class="button" type="button">Close</button>
+        </div>
       </div>
-    </header>
-
-    <main>
-      <section class="cards" id="cards" aria-label="Totals"></section>
-
-      <p id="empty" class="empty" hidden>
-        <strong>No runs yet.</strong>
-        <span id="empty-detail"></span>
-      </p>
-
-      <section class="panel" id="score-panel">
-        <div class="panel-head">
-          <h2>Score over runs</h2>
-          <div id="legend" class="legend" aria-hidden="true"></div>
-        </div>
-        <svg
-          id="score-chart"
-          class="chart"
-          viewBox="0 0 900 320"
-          role="img"
-          aria-label="Technical, editorial and total score per run"
-        ></svg>
-      </section>
-
-      <section class="panel" id="findings-panel">
-        <div class="panel-head">
-          <h2>What costs the most</h2>
-          <p class="hint">lost points per finding code, all runs in the window</p>
-        </div>
-        <svg
-          id="findings-chart"
-          class="chart"
-          viewBox="0 0 900 120"
-          role="img"
-          aria-label="Lost points per finding code"
-        ></svg>
-      </section>
-
-      <section class="panel" id="runs-panel">
-        <div class="panel-head">
-          <h2>Runs</h2>
-          <p class="hint" id="runs-hint"></p>
-        </div>
-        <div class="table-wrap">
-          <table id="runs"></table>
-        </div>
-      </section>
-    </main>
-
-    <footer>
-      <span id="footer"></span>
-    </footer>
+      <div id="detail-body" class="detail-body"></div>
+    </dialog>
 
     <script src="/app.js"></script>
   </body>
