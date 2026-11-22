@@ -128,12 +128,17 @@ eyes. Never mention audio, BPM, tempo, music, songs, text or watermarks.",
 }
 
 /// The 4B likes to write "glowing red eyes" for dramatic prompts, and the image
-/// model renders it literally. Keep the eyes natural without touching the rest
-/// of the scene.
+/// model renders it literally as pixel crosses. Keep the eyes natural without
+/// touching the rest of the scene. Longest phrases go first so the generic
+/// "eyes" rules do not leave a half-replaced phrase behind.
 pub fn sanitize_eye_prompt(prompt: &str) -> String {
     prompt
         .replace("glowing red eyes", "soft green eyes")
         .replace("Glowing red eyes", "soft green eyes")
+        .replace("glowing pixel eyes", "soft eyes")
+        .replace("Glowing pixel eyes", "soft eyes")
+        .replace("pixel eyes", "soft eyes")
+        .replace("Pixel eyes", "soft eyes")
         .replace("glowing eyes", "soft eyes")
         .replace("Glowing eyes", "soft eyes")
         .replace("neon eyes", "soft eyes")

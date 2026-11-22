@@ -7,6 +7,17 @@ fn glowing_eyes_are_sanitized() {
 }
 
 #[test]
+fn glowing_pixel_eyes_are_sanitized() {
+    let prompt = sanitize_eye_prompt(
+        "Anime girl with glowing pixel eyes stands in a pixelated forest, 8-bit hues",
+    );
+    assert_eq!(
+        prompt,
+        "Anime girl with soft eyes stands in a pixelated forest, 8-bit hues"
+    );
+}
+
+#[test]
 fn image_extra_args_carry_seed_and_steps() {
     let prompt = with_extra_args("pixel art", 42, 12, "glowing eyes");
     assert!(prompt.starts_with("pixel art <sd_cpp_extra_args>"));
