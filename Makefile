@@ -8,7 +8,7 @@ PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 BIN := target/release/melodias
 
-.PHONY: help run generate image judge score youtube history dashboard render video backfill refs build check skills-check docs-check fmt test install uninstall deploy status log clean
+.PHONY: help run generate image judge score youtube history dashboard site render video backfill refs build check skills-check docs-check fmt test install uninstall deploy status log clean
 
 help:
 	@printf '%s\n' \
@@ -23,6 +23,7 @@ help:
   '  make youtube DIR=output/<slug>       YouTube copy for a finished run, no GPU' \
   '  make history [ARGS=findings]         read the local history database' \
   '  make dashboard                       serve the read-only dashboard on 127.0.0.1' \
+  '  make site                            preview the project page on 127.0.0.1:4000' \
   '  make backfill [ARGS=--replace]       score the runs in output/ into the history DB' \
   '  make refs ARGS="fetch --source opengameart --concept castle"  fill the reference library' \
   '  make refs ARGS="generate --concept volcano --count 5"  generate references with sd-server' \
@@ -80,6 +81,11 @@ history:
 
 dashboard:
 	$(CARGO) run --release -- dashboard $(ARGS)
+
+site:
+	@bash scripts/prepare-site.sh
+	@printf 'site: http://127.0.0.1:4000/ (ctrl-c to stop)\n'
+	@python3 -m http.server 4000 --directory site
 
 render:
 	@test -n "$(DIR)" || { echo 'missing DIR, for example: make render DIR=output/<slug>'; exit 2; }

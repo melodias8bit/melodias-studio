@@ -1,5 +1,7 @@
 /target
 /output
+/site/assets/img
+/site/assets/video
 *.wav
 *.db
 *.db-wal
