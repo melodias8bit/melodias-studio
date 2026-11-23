@@ -44,7 +44,28 @@ custom domain is added, update the canonical and Open Graph URLs in
   targets in the commands table mirror the `Makefile`.
 - Artwork: `banner.png` is the README banner. Keep the character credit in the
   footer while it shows Frieren.
-- Demo media: the page ships with UI screenshots only; no generated track or
-  video is committed. Follow [docs/runbooks/site-demo.md](../docs/runbooks/site-demo.md)
-  on the machine with the generated runs to add a still, a 30 s clip and a
-  30 s excerpt.
+- Demo media: the page shows one real run from `output/`. The committed
+  sources are `docs/assets/demo-thumbnail.webp` (or `.png`), `docs/assets/demo-audio.mp3`
+  and `docs/assets/demo-video.mp4`; `scripts/prepare-site.sh` stages them into
+  `site/assets/img/` and `site/assets/media/`. Current run:
+  `output/world-s-most-epic-emotional-violin`, vibe "World's Most Epic Emotional Violin"
+  (total 70.13, the highest of the local runs; none met the 80 target).
+  Refresh them with:
+
+  ```bash
+  slug=world-s-most-epic-emotional-violin
+  ffmpeg -y -i output/$slug/thumbnail.png -vf scale=1280:-2 \
+    -c:v libwebp -quality 85 docs/assets/demo-thumbnail.webp
+  ffmpeg -y -ss 45 -t 30 -i output/$slug/audio.mp3 \
+    -af "afade=t=in:st=0:d=1,afade=t=out:st=29:d=1" \
+    -b:a 96k docs/assets/demo-audio.mp3
+  ffmpeg -y -ss 45 -t 30 -i output/$slug/video.mp4 \
+    -vf scale=1280:-2 -c:v libx264 -crf 27 -preset slow \
+    -c:a aac -b:a 96k -movflags +faststart docs/assets/demo-video.mp4
+  ls -lh docs/assets/demo-*
+  ```
+
+  Keep the still under 1 MB, the audio under 1 MB and the clip under 4 MB
+  so the whole page stays under about 12 MB.
+  Follow [docs/runbooks/site-demo.md](../docs/runbooks/site-demo.md)
+  on the machine with the generated runs for the full checklist.

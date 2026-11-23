@@ -43,6 +43,7 @@
       <a href="#pipeline">Pipeline</a>
       <a href="#score">Score</a>
       <a href="#gallery">In action</a>
+      <a href="#demo">Demo</a>
       <a href="#install">Install</a>
       <a class="topnav-source" href="https://github.com/melodias8bit/melodias-studio">Source</a>
     </nav>
@@ -375,10 +376,53 @@ melodias</code></pre>
       </div>
     </section>
 
-    <section class="section" id="install">
+    <section class="section" id="demo">
       <div class="wrap">
         <header class="sec-head">
           <span class="sec-index">05</span>
+          <h2>From a real run</h2>
+          <p>
+            One finished folder, cut to 30 seconds for the web. The still is the
+            run thumbnail, the audio is a 30 s excerpt from the master, and the
+            clip is the same window of the 1080p video.
+          </p>
+        </header>
+
+        <div class="demo-grid">
+          <figure class="demo-still">
+            <div class="demo-frame">
+              <img src="assets/img/demo-thumbnail.webp" alt="Pixel-art still from the demo run: violinist on stage" width="1280" height="720" loading="lazy">
+            </div>
+            <figcaption>
+              <span class="shot-tag">Still</span>
+              output/world-s-most-epic-emotional-violin, World's Most Epic Emotional Violin.
+              Full files stay in <code>output/</code>, this page only ships the excerpt.
+            </figcaption>
+          </figure>
+
+          <div class="demo-players">
+            <article class="demo-player">
+              <h3>audio.mp3, 30 s excerpt</h3>
+              <audio controls preload="metadata" src="assets/media/demo-audio.mp3"></audio>
+              <p>Starts at 0:45 with 1 s fades on both ends, 96k for the web.</p>
+            </article>
+
+            <article class="demo-player">
+              <h3>video.mp4, 30 s excerpt</h3>
+              <video controls playsinline preload="none"
+                     poster="assets/img/demo-thumbnail.webp"
+                     src="assets/media/demo-video.mp4"></video>
+              <p>Same 30 s window, 720p with faststart so it plays before it finishes loading.</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="install">
+      <div class="wrap">
+        <header class="sec-head">
+          <span class="sec-index">06</span>
           <h2>Install</h2>
           <p>
             Generation happens on your own box. Bring the three HTTP services, point the
@@ -447,7 +491,7 @@ melodias</code></pre>
     <section class="section alt" id="commands">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">06</span>
+          <span class="sec-index">07</span>
           <h2>After the run</h2>
           <p>
             A finished folder is not frozen. Rework one piece without paying for the whole
@@ -480,7 +524,7 @@ melodias</code></pre>
     <section class="section" id="docs">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">07</span>
+          <span class="sec-index">08</span>
           <h2>Read the manual</h2>
           <p>
             The page is the pitch; the repository is the reference. These are the files
