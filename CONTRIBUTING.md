@@ -13,7 +13,7 @@ The full rules live in `AGENTS.md` (repo root and Dyallab base): strict TypeScri
 
 ## Environment
 
-- Rust 1.85+, `ffmpeg`, `ffprobe`, `tesseract` (optional, `IMG_TEXT` skips without it).
+- Rust 1.88+, `ffmpeg`, `ffprobe`, `tesseract` (optional, `IMG_TEXT` skips without it).
 - No GPU, service or network needed for `make check`.
 - GPU work needs SSH to the GPU box plus `yt-dlp`, `scp`, `pnpm` for the Remotion cut. See `docs/setup.md` and `docs/runbooks/gpu-recovery.md`.
 

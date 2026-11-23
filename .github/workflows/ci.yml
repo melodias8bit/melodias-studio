@@ -10,10 +10,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg tesseract-ocr
-      - name: Rust 1.85
+      - name: Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.85
           components: rustfmt, clippy
       - name: make check
         run: make check
