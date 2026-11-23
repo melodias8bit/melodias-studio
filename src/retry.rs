@@ -73,6 +73,18 @@ pub const PATCHES: &[Patch] = &[
         positive: "continuous arrangement, no long silence",
         negative: "",
     },
+    Patch {
+        key: "AUD_REPEAT",
+        codes: &["AUD_REPEAT"],
+        positive: "varied arrangement with evolving motifs, call and response, new element every 8 bars, no section repeats unchanged",
+        negative: "",
+    },
+    Patch {
+        key: "AUD_VARIETY",
+        codes: &["AUD_VARIETY"],
+        positive: "many distinct sections, new motifs every few bars, contrasting B section before any loop returns",
+        negative: "",
+    },
 ];
 
 pub fn patch_for(code: &str) -> Option<&'static Patch> {

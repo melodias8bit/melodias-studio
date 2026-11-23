@@ -612,7 +612,7 @@ fn best_index(pool: &[Scored]) -> Option<usize> {
     best
 }
 
-/// Eight points of the 50-point audio side, in normalized terms.
+/// Eight points of the 66-point audio side, in normalized terms.
 fn audio_lost_enough(score: f64) -> bool {
     (100.0 - score) / 2.0 >= 8.0
 }
@@ -688,8 +688,22 @@ fn generate_images(round: ImageRound<'_>) -> Result<Vec<Scored>> {
             negative: round.prompt.negative.clone(),
             references: round.references.to_vec(),
         };
-        match score::image_side(&item.candidate.file) {
-            Ok(side) => item.side = Some(side),
+        match score::gated_image_side(&item.candidate.file) {
+            Ok((side, gates)) if gates.is_empty() => item.side = Some(side),
+            Ok((_, gates)) => {
+                let codes = gates
+                    .iter()
+                    .map(|gate| gate.code)
+                    .collect::<Vec<_>>()
+                    .join(",");
+                log(
+                    round.tx,
+                    format!(
+                        "warning: discarded {}: gate {codes}",
+                        item.candidate.file.display()
+                    ),
+                );
+            }
             Err(error) => log(
                 round.tx,
                 format!(
@@ -712,7 +726,6 @@ struct AudioRound<'a> {
     seed: u32,
     start: usize,
     count: usize,
-    target: f64,
 }
 
 fn generate_drafts(round: AudioRound<'_>) -> Result<Vec<Scored>> {
@@ -753,8 +766,25 @@ fn generate_drafts(round: AudioRound<'_>) -> Result<Vec<Scored>> {
             negative: round.prompt.negative.clone(),
             references: Vec::new(),
         };
-        match score::draft_side(&item.candidate.file, round.target) {
-            Ok(side) => item.side = Some(side),
+        match score::gated_draft_side(
+            &item.candidate.file,
+            round.cfg.audio_draft_sec.max(10) as f64,
+        ) {
+            Ok((side, gates)) if gates.is_empty() => item.side = Some(side),
+            Ok((_, gates)) => {
+                let codes = gates
+                    .iter()
+                    .map(|gate| gate.code)
+                    .collect::<Vec<_>>()
+                    .join(",");
+                log(
+                    round.tx,
+                    format!(
+                        "warning: discarded {}: gate {codes}",
+                        item.candidate.file.display()
+                    ),
+                );
+            }
             Err(error) => log(
                 round.tx,
                 format!(
@@ -884,7 +914,6 @@ fn audio_pool(request: AudioPool<'_>) -> Result<(Vec<Scored>, Vec<retry::Applied
         count,
     } = request;
     let budget = cfg.score_rounds.min(retry::AUDIO_ROUNDS);
-    let target = cfg.duration_sec as f64;
     let mut pool = generate_drafts(AudioRound {
         cfg,
         tx,
@@ -894,7 +923,6 @@ fn audio_pool(request: AudioPool<'_>) -> Result<(Vec<Scored>, Vec<retry::Applied
         seed,
         start: 0,
         count,
-        target,
     })?;
     let mut patches = Vec::new();
     let mut used = BTreeSet::new();
@@ -950,7 +978,6 @@ fn audio_pool(request: AudioPool<'_>) -> Result<(Vec<Scored>, Vec<retry::Applied
             seed,
             start: pool.len(),
             count: add,
-            target,
         })?);
         patches.push(applied);
         rounds = round;

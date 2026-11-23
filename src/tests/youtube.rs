@@ -23,10 +23,10 @@ fn composes_the_shared_body_and_hashtags() {
         meta.description
             .contains("stable-diffusion.cpp · MOSS-Image-SFT-UD-Q4_K_XL")
     );
-    assert!(meta.description.contains("audiocpp_server · ACE-Step"));
+    assert!(meta.description.contains("audio.cpp · ACE-Step"));
     assert!(
         meta.description
-            .contains("llama-server · Qwen3-4B-Instruct-2507")
+            .contains("llama.cpp · Qwen3-4B-Instruct-2507")
     );
     assert_eq!(
         meta.hashtags,
@@ -55,8 +55,8 @@ fn uses_the_configured_model_labels() {
     };
     let meta = compose("vibe", None, &models);
     assert!(meta.description.contains("stable-diffusion.cpp · Sana"));
-    assert!(meta.description.contains("audiocpp_server · musicgen"));
-    assert!(meta.description.contains("llama-server · Qwen3.6-35B-A3B"));
+    assert!(meta.description.contains("audio.cpp · musicgen"));
+    assert!(meta.description.contains("llama.cpp · Qwen3.6-35B-A3B"));
 }
 
 #[test]

@@ -24,12 +24,59 @@ pub struct MustFix {
     pub reason: String,
 }
 
+/// The five editorial axes, from RFC 0002. Weights live in
+/// `crate::score::EDITORIAL_WEIGHTS`; the keys here must match them.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EditorialAxes {
+    pub style: f64,
+    pub composition: f64,
+    pub eyes: f64,
+    pub retro: f64,
+    pub coherence: f64,
+}
+
+impl EditorialAxes {
+    fn from_value(value: &Value) -> Option<Self> {
+        let get = |key: &str| value.get(key).and_then(Value::as_f64);
+        Some(Self {
+            style: get("style")?,
+            composition: get("composition")?,
+            eyes: get("eyes")?,
+            retro: get("retro")?,
+            coherence: get("coherence")?,
+        })
+    }
+
+    fn as_json(&self) -> Value {
+        json!({
+            "style": self.style,
+            "composition": self.composition,
+            "eyes": self.eyes,
+            "retro": self.retro,
+            "coherence": self.coherence,
+        })
+    }
+}
+
+/// Weighted editorial score over the five axes. Same weights as
+/// `crate::score::EDITORIAL_WEIGHTS`, kept local to avoid a module cycle
+/// through the pipeline.
+fn editorial_score(axes: &EditorialAxes) -> f64 {
+    let total = axes.style * 0.25
+        + axes.composition * 0.25
+        + axes.eyes * 0.20
+        + axes.retro * 0.15
+        + axes.coherence * 0.15;
+    (total.clamp(0.0, 100.0) * 100.0).round() / 100.0
+}
+
 pub struct Verdict {
     pub image: usize,
     pub audio: usize,
     pub score: u8,
     pub reason: String,
     pub must_fix: Vec<MustFix>,
+    pub axes: Option<EditorialAxes>,
 }
 
 impl Verdict {
@@ -45,13 +92,17 @@ impl Verdict {
                 })
             })
             .collect();
-        json!({
+        let mut summary = json!({
             "image": self.image + 1,
             "audio": self.audio + 1,
             "score": self.score,
             "reason": self.reason,
             "must_fix": must_fix,
-        })
+        });
+        if let Some(axes) = &self.axes {
+            summary["axes"] = axes.as_json();
+        }
+        summary
     }
 
     /// Appends " · must fix: ..." for logs, or nothing when the judge is happy.
@@ -165,8 +216,11 @@ pub fn decide(cfg: &Config, request: Request<'_>) -> Result<Verdict> {
                  A perception model saw the images and heard the clips. Its report:\n{omni}\n\n\
                  You are the final judge. Choose the image and the audio that make the best pair \
                  for the channel, balancing quality and mood coherence.{measured}\n\n\
+                 Also score the best pair on five axes, 0 to 100 each: style, composition, \
+                 eyes, retro, coherence.\n\n\
                  Return exactly this JSON:\n\
                  {{\"verdict\":\"approve\",\"image\":1,\"audio\":1,\"score\":0,\
+                 \"axes\":{{\"style\":0,\"composition\":0,\"eyes\":0,\"retro\":0,\"coherence\":0}},\
                  \"must_fix\":[{{\"code\":\"eyes\",\"target\":\"image 1\",\"reason\":\"\"}}],\
                  \"nice_to_have\":[],\"reason\":\"\"}}"
             );
@@ -182,11 +236,16 @@ pub fn decide(cfg: &Config, request: Request<'_>) -> Result<Verdict> {
     let audio = pick_index(&judge["audio"], audios.len())
         .or_else(|| pick_index(&omni["best"]["audio"], audios.len()))
         .unwrap_or(0);
-    let score = judge["score"]
-        .as_u64()
-        .or_else(|| omni["best"]["score"].as_u64())
-        .unwrap_or(0)
-        .min(100) as u8;
+    let axes = EditorialAxes::from_value(&judge["axes"])
+        .or_else(|| EditorialAxes::from_value(&omni["axes"]));
+    let score = match &axes {
+        Some(axes) => editorial_score(axes).round().clamp(0.0, 100.0) as u8,
+        None => judge["score"]
+            .as_u64()
+            .or_else(|| omni["best"]["score"].as_u64())
+            .unwrap_or(0)
+            .min(100) as u8,
+    };
     let reason = judge["reason"]
         .as_str()
         .or_else(|| omni["reason"].as_str())
@@ -216,6 +275,7 @@ pub fn decide(cfg: &Config, request: Request<'_>) -> Result<Verdict> {
         score,
         reason,
         must_fix,
+        axes,
     })
 }
 
@@ -316,6 +376,11 @@ fn brief(vibe: &str, images: usize, audios: usize, findings: Option<&str>) -> St
          outro, no vocals. \
          Score the mood coherence of every image/audio pair from 0 to 100.\
          {measured}\n\n\
+         Then score the chosen best pair on five axes, 0 to 100 each: style (channel \
+         palette and mood adherence), composition (readability, subject, framing), eyes \
+         (natural eyes, no glow or deformity), retro (true pixel-art and chiptune \
+         character, not generic anime or orchestral), coherence (image and audio feel \
+         like the same piece).\n\
          must_fix is only for what the numbers cannot see. Use code one of eyes, composition, \
          style, retro, coherence or other, and target image N, audio N or pair. \
          Return exactly this JSON shape:\n\
@@ -323,6 +388,7 @@ fn brief(vibe: &str, images: usize, audios: usize, findings: Option<&str>) -> St
          \"audios\":[{{\"index\":1,\"score\":0,\"reason\":\"\"}}],\
          \"pairs\":[{{\"image\":1,\"audio\":1,\"coherence\":0,\"reason\":\"\"}}],\
          \"best\":{{\"image\":1,\"audio\":1,\"score\":0}},\
+         \"axes\":{{\"style\":0,\"composition\":0,\"eyes\":0,\"retro\":0,\"coherence\":0}},\
          \"must_fix\":[{{\"code\":\"eyes\",\"target\":\"image 1\",\"reason\":\"\"}}],\
          \"reason\":\"\"}}"
     )

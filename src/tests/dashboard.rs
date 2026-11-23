@@ -283,3 +283,20 @@ fn serves_the_detail_and_the_media_of_a_run() {
     }
     let _ = std::fs::remove_dir_all(&out);
 }
+
+#[test]
+fn client_disconnects_stay_silent() {
+    use std::io::ErrorKind;
+    for kind in [
+        ErrorKind::ConnectionReset,
+        ErrorKind::ConnectionAborted,
+        ErrorKind::BrokenPipe,
+        ErrorKind::UnexpectedEof,
+    ] {
+        assert!(is_client_disconnect(&std::io::Error::new(kind, "gone")));
+    }
+    assert!(!is_client_disconnect(&std::io::Error::new(
+        ErrorKind::TimedOut,
+        "slow"
+    )));
+}

@@ -1,6 +1,6 @@
 # 0002 · Deterministic scoring and feedback loop
 
-Status: accepted. Phases 1 to 3 are implemented, plus a first dashboard. The five editorial axes and their weights are still open.
+Status: accepted. Phases 1 to 3 are implemented, plus a first dashboard. The five editorial axes and their weights are implemented and charted (latest judged run on the overview, per-run bars in the run detail). The rubric is `score-v3` since `AUD_VARIETY` joined the audio side.
 
 Date: 2026-11-20
 
@@ -52,8 +52,8 @@ The palette metric alone explains the judge's complaint ("anime with pixel overl
 Two components and one total:
 
 ```
-technical = image (50) + audio (50)          deterministic, always computed
-editorial = judge best-pair score (0..100)   optional, only when the judge runs
+technical = image (50) + audio (66)          deterministic, always computed
+editorial = weighted judge axes (0..100)     optional, only when the judge runs
 total     = 0.6 * technical + 0.4 * editorial
 ```
 
@@ -86,7 +86,7 @@ Otherwise the loop runs, or the run ends marked `accepted_by_limit`.
 
 `IMG_GLOW` catches neon bloom, not eyes. A natural red iris does not trip it, and a subtle glow can pass it. Eyes stay editorial.
 
-### Audio, 50 points
+### Audio, 66 points
 
 | Code | Metric | Threshold | Points |
 | --- | --- | --- | --- |
@@ -95,10 +95,16 @@ Otherwise the loop runs, or the run ends marked `accepted_by_limit`.
 | `AUD_CENTROID` | mean spectral centroid | 2.0..4.5 kHz: full; 1.2..2.0 or 4.5..6.0: linear 4..8; outside: 0 | 8 |
 | `AUD_HIGHS` | energy above 5 kHz, relative to total | >= 8 %: full; 3..8 %: linear 4..8; below 3 %: 0..4 | 8 |
 | `AUD_BUILD` | intro RMS minus middle RMS | <= -2 dB: full; -2..0: linear 8..4; above 0: linear 4..0 | 8 |
+| `AUD_REPEAT` | longest run of near-identical 2 s windows | <= 8 s: full; 8..15 s: linear 8..0; above 15 s: 0 | 8 |
+| `AUD_VARIETY` | share of 30 s windows with 5+ distinct chroma patterns | <= 20 %: 0; 20..60 %: linear 0..8; above 60 %: full | 8 |
 | `AUD_SILENCE` | longest silent gap before the last 5 s | <= 1 s: full; 1..2 s: linear; above 2 s: 0 | 5 |
 | `AUD_DURATION` | length against `DURATION_SEC` | within 2 s: full; outside: 0 | 5 |
 
 `AUD_BUILD` is the honest measure of "epic": a track that starts at full energy and never builds loses points. The current run loses 3.5 of 8 there.
+
+`AUD_REPEAT` is the first lesson-learned metric (see Lessons below): one decode at 8 kHz mono, RMS plus zero-crossing per 2 s window, longest run of consecutive similar windows. Windows under -50 dB break the run, so fades and silences never count as loops. Normal chiptune looping is not penalized; a 15 s stall on one pattern scores 0. It runs on drafts too, so the retry loop can fix the arrangement before the final take.
+
+`AUD_VARIETY` is lesson two: pattern turnover matters more than stall length. One decode, chroma per 1 s window (Hann, 8192-point FFT, magnitude per pitch class), greedy distinct count per 30 s window at cosine 0.90, share of windows with five or more patterns. Magnitude, not energy: squared spectra turn every transient into a new pattern and the calibration breaks (the finale read 100 % dense under energy, 14 % under magnitude). The reference comparison: orchestral-finale 14 % dense against artcore fully dense, which matches the ear. Stall and variety are independent signals; the artcore stalls 26 s and still turns over motifs.
 
 `AUD_SILENCE` excludes the tail because `FADE_OUT_SEC` leaves an intentional near-silence; the current 4.6 s at the end is not a defect.
 
@@ -107,15 +113,26 @@ Otherwise the loop runs, or the run ends marked `accepted_by_limit`.
 Candidates that fail a gate are rejected before scoring, not penalized:
 
 - `GATE_TYPE`: 16:9 within 1 %, at least 1280x720.
-- `GATE_DURATION`: audio length within 2 s of `DURATION_SEC`.
+- `GATE_BLANK`: luma std below 0.02, the frame is blank or flat.
+- `GATE_TEXT`: 3 or more OCR words (one or two stay soft as `IMG_TEXT`).
+- `GATE_DURATION`: audio length within 2 s of `DURATION_SEC` (drafts use `AUDIO_DRAFT_SEC`).
 - `GATE_PEAK`: true peak above 0 dBFS.
-- `GATE_DECODE`: `ffprobe` cannot read the file.
+- `GATE_LEADING`: over 1.5 s of silence at the start (the tail is excluded, the master fade is intentional).
+- `GATE_DECODE`: `ffprobe` cannot read the file, or `ffmpeg` cannot decode the pixels.
 
 ### Editorial, 100 points
 
-The judge keeps the rubric from 0001 but stops returning a single opaque score. It returns 0..100 for style, composition, eyes, retro character and pair coherence, plus `must_fix` codes. `editorial` is the weighted sum of those axes, and the judge receives the deterministic findings so it does not repeat them and does not contradict the gates.
+The judge returns 0..100 for each of five axes, plus `must_fix` codes. `editorial` is the weighted sum of those axes, and the judge receives the deterministic findings so it does not repeat them and does not contradict the gates.
 
-The axes and weights are not implemented yet. Today the judge still returns one editorial score, plus up to five `must_fix` codes from the vocabulary eyes, composition, style, retro, coherence or other. Those codes are kept in `verdict.json` and `meta.json`; giving each axis a weight is the next editorial change.
+| Axis | What it scores | Weight |
+| --- | --- | --- |
+| `style` | channel palette and mood adherence | 25 |
+| `composition` | readability, subject, framing | 25 |
+| `eyes` | natural eyes, no glow or deformity | 20 |
+| `retro` | true pixel-art and chiptune character, not generic anime or orchestral | 15 |
+| `coherence` | image and audio feel like the same piece | 15 |
+
+Implemented in `src/judge.rs` (`EditorialAxes`, `editorial_score`) and `src/score.rs` (`EDITORIAL_WEIGHTS`, `editorial_from_axes`). The weights are fixed data in `score-v1`, next to the patch table: composition and style carry the readability and channel adherence the judge is for, eyes keeps the past defect visible, retro and coherence split the rest. Verdicts written before the axes fall back to the single opaque score (`omni.best.score` or `judge.score`).
 
 When the judge is off, `editorial` is absent and the total equals the technical score.
 
@@ -271,6 +288,17 @@ select code, count(*) as hits, avg(delta) as lost,
 from findings group by code order by lost asc;
 ```
 
+## Lessons
+
+The findings and patches tables are the memory; this is the rule that writes to it. When a human spots a defect the rubric missed (a 15 s stall on one pattern that repeats six times over three minutes), it becomes a lesson in four steps:
+
+1. A new finding code with a deterministic measure, no model and no new dependency.
+2. A patch entry in `src/retry.rs` so the loop can fix it, or a documented reason why it stays unpatchable.
+3. A unit test with a synthetic fixture plus the worked-example numbers.
+4. A rubric bump when the technical scale changes (`score-v1` to `score-v2` for `AUD_REPEAT`), so trends only compare rows with the same rubric. `melodias backfill --replace` re-scores old runs under the new rubric.
+
+`AUD_REPEAT` is lesson one. Global structure (the same 30 s section six times) stays editorial under `retro` and `coherence`; the number only sees local stalls.
+
 ## CLI
 
 ```
@@ -303,8 +331,9 @@ The current run, scored with this rubric:
 | Audio | build | -0.2 dB | 4.5 / 8 |
 | Audio | silence | 0 s | 5.0 / 5 |
 | Audio | duration | 210.0 s | 5.0 / 5 |
+| Audio | repeat | no stall over 8 s | 8.0 / 8 |
 
-`technical = 72.2`, `editorial = 67`, `total = 70.1`. The run would fail the 80 target, and the report would name `IMG_PALETTE` as the first fix. Posterizing to 2,048 colors takes technical to 92.2 and total to 82.1, before touching the audio. `melodias score` reproduces this table.
+`technical = 72.2`, `editorial = 67`, `total = 70.1` under `score-v1`. Under `score-v2` the same run keeps full `AUD_REPEAT` marks, so technical rises about one point; the verdict is unchanged. The run would fail the 80 target, and the report would name `IMG_PALETTE` as the first fix. Posterizing to 2,048 colors takes technical to 92.2 and total to 82.1, before touching the audio. `melodias score` reproduces this table.
 
 ## Calibration
 
@@ -320,7 +349,7 @@ The editorial score is the weak part and the RFC does not hide it:
 1. **Metrics and `melodias score`.** Done: `src/score.rs`, pure functions over pixel buffers plus parsers for `ffmpeg` output, `melodias score <dir>` and `work/score.json`, findings in the report. Every candidate and the final pair are scored; drafts skip the master-only metrics. No database, no loop.
 2. **History in every run.** Done: `rusqlite` with the bundled feature, one write at the end of a run, `melodias history` reads. `MELODIAS_DB` and the default path. Findings of the final pair are stored at run level (`candidate_id` null); the pool candidates keep their full score in `candidates.score_json`. `melodias backfill` covers the runs made before it existed.
 3. **Retry loop.** Done: `src/retry.rs` holds the patch table, the finding picker and the prompt application; the pipeline runs the image rounds in the image stage and the audio round in the drafts stage, records every patch in `patches`, and stores `accepted_by_limit` with a reason. The judge prompt receives the deterministic findings and asks for `must_fix` codes. The editorial axes and weights remain open.
-4. **Dashboard.** Done (first version): `melodias dashboard` serves a local read-only page over the database with the score per run and the cost per finding. It is a Rust server plus static files in `dashboard/`, polls once a minute and needs no build step. A static export over the CSV is still open.
+4. **Dashboard.** Done (first version): `melodias dashboard` serves a local read-only page over the database with the score per run and the cost per finding. It is a Rust server plus static files in `dashboard/`, polls once a minute and needs no build step. The editorial axes are charted per run and for the latest judged run on the overview. A static export over the CSV is still open.
 
 ## Tests
 
@@ -347,5 +376,9 @@ The editorial score is the weak part and the RFC does not hide it:
 3. **Acceptance:** 80 total, 85 technical, 70 editorial. A perfect editorial score cannot carry a technical score below 72.
 4. **OCR:** `tesseract` is optional. Without it, `IMG_TEXT` is skipped and the image side is renormalized over the remaining 40 points.
 5. **Database:** the config directory, `MELODIAS_DB` overrides it. `.gitignore` covers `*.db`, `*.db-wal` and `*.db-shm` for checkouts that point into the repo.
-6. **Audio round:** at most one, when the audio side lost 8 points or more of its 50, independent of the image side. The loop still stops at `SCORE_ROUNDS`. In practice this is a side score below 84/100; drafts are normalized over the metrics they can measure, so the condition uses the normalized score. The first implementation also required the image side to pass, but the live run showed that a weak image starved the audio round, so the gate is gone.
-7. **Candidates:** score all of them. Drafts skip `AUD_LOUDNESS`, `AUD_PEAK` and `AUD_DURATION`, which describe the mastered track.
+6. **Audio round:** at most one, when the audio side lost 8 points or more of its 66, independent of the image side. The loop still stops at `SCORE_ROUNDS`. In practice this is a side score below 84/100; drafts are normalized over the metrics they can measure, so the condition uses the normalized score. The first implementation also required the image side to pass, but the live run showed that a weak image starved the audio round, so the gate is gone.
+7. **Candidates:** score all of them. Drafts skip `AUD_LOUDNESS`, `AUD_PEAK` and `AUD_DURATION`, which describe the mastered track. Draft gates use `AUDIO_DRAFT_SEC` as the duration target.
+8. **Gates:** `GATE_BLANK` at luma std 0.02, `GATE_TEXT` at 3 OCR words, `GATE_LEADING` at 1.5 s of leading silence. One or two OCR words stay soft because illustrated art invents junk tokens; the fade tail never gates.
+9. **Editorial axes:** style 25, composition 25, eyes 20, retro 15, coherence 15. Fixed in `score-v1`; legacy verdicts without axes fall back to the single score.
+10. **Repeat:** `AUD_REPEAT` at 8 s full, 15 s zero, measured on drafts and masters; the rubric is `score-v2`. A stall the rubric cannot see becomes a lesson: code, patch, test, bump.
+11. **Variety:** `AUD_VARIETY` at 20 % zero, 60 % full, same decode as repeat plus a pure-Rust FFT; the rubric is `score-v3`. Turnover outranks stall length: the artcore stalls 26 s and still scores full variety, the finale stalls 18 s at 14 % dense and loses both.

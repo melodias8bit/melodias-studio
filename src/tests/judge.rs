@@ -72,6 +72,7 @@ fn must_fix_caps_the_list_and_builds_the_suffix() {
         score: 70,
         reason: "ok".to_string(),
         must_fix: parsed,
+        axes: None,
     };
     assert!(verdict.must_fix_suffix().starts_with(" · must fix: fix0"));
     assert!(verdict.summary()["must_fix"].is_array());
@@ -83,4 +84,28 @@ fn auto_provider_prefers_the_configured_key() {
     assert_eq!(resolve("auto", true), Provider::OpenCode);
     assert_eq!(resolve("openrouter", true), Provider::OpenRouter);
     assert_eq!(resolve("opencode", false), Provider::OpenCode);
+}
+
+#[test]
+fn axes_parse_and_weight_the_editorial() {
+    let axes = EditorialAxes::from_value(&json!({
+        "style": 80.0,
+        "composition": 70.0,
+        "eyes": 90.0,
+        "retro": 60.0,
+        "coherence": 75.0,
+    }))
+    .unwrap();
+    assert!((editorial_score(&axes) - 75.75).abs() < 1e-9);
+    assert!(EditorialAxes::from_value(&json!({"style": 80.0})).is_none());
+    assert!(
+        EditorialAxes::from_value(&json!({
+            "style": 0.0,
+            "composition": 0.0,
+            "eyes": 0.0,
+            "retro": 0.0,
+            "coherence": 0.0,
+        }))
+        .is_some()
+    );
 }

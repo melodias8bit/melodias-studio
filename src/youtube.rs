@@ -66,10 +66,10 @@ Some of the creative process was powered by my own local AI setup:
 stable-diffusion.cpp · {}
 
 🎵 *Music generation*
-audiocpp_server · {}
+audio.cpp · {}
 
 🧠 *Creative assistance*
-llama-server · {}
+llama.cpp · {}
 
 🛠️ *My local AI setup:*
 - https://github.com/jd-apprentice/jd-llm
