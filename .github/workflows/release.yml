@@ -1,0 +1,35 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check Cargo.toml matches the tag
+        run: |
+          version=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+          if [ "v$version" != "${{ github.ref_name }}" ]; then
+            echo "Cargo.toml says $version but the tag is ${{ github.ref_name }}" >&2
+            exit 1
+          fi
+      - name: Create the release
+        run: |
+          previous=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || echo "")
+          if [ -n "$previous" ]; then
+            notes=$(git log "$previous..${{ github.ref_name }}" --pretty='- %s')
+          else
+            notes=$(git log "${{ github.ref_name }}" --pretty='- %s')
+          fi
+          gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --notes "$notes"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

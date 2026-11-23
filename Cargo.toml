@@ -2,6 +2,7 @@
 name = "melodias-studio"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88"
 description = "TUI to generate 8-bit thumbnails and original chiptune tracks for a YouTube channel, using local models"
 license = "MIT"
 

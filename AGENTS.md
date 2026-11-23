@@ -1,6 +1,6 @@
 # melodias-studio
 
-Rust 1.85+ (edition 2024) TUI + CLI (binary `melodias`). A source URL and a vibe produce `output/<slug>/` with `thumbnail.png`, `audio.mp3`, `video.mp4`, `youtube.txt`, `meta.json`, `candidates/` and `work/`. The reference only conditions timbre: the thumbnail and track are new material. No args opens the TUI, `<url> <vibe>` runs headless, and the remaining subcommands inspect or rework runs, history, references, or a single track.
+Rust 1.88+ (edition 2024) TUI + CLI (binary `melodias`). A source URL and a vibe produce `output/<slug>/` with `thumbnail.png`, `audio.mp3`, `video.mp4`, `youtube.txt`, `meta.json`, `candidates/` and `work/`. The reference only conditions timbre: the thumbnail and track are new material. No args opens the TUI, `<url> <vibe>` runs headless, and the remaining subcommands inspect or rework runs, history, references, or a single track.
 
 ## Commands
 
@@ -50,7 +50,7 @@ Scoring and history:
 - The dashboard has no Node or build step; its HTML, CSS and JS in `dashboard/` are `include_str!`, so editing them needs a rebuild. A database without the expected tables answers 500 and logs the SQL error; a missing file renders an empty state.
 - `melodias backfill` writes through the same `history::insert` as the pipeline, so findings attach to the run with a null `candidate_id` like the normal write.
 - `melodias image` regenerates from the selected candidate's stored `prompt`, `negative_prompt`, seed and references, falling back to the global prompt when the candidate has none. A patched retry is reproducible without the config file.
-- `rusqlite` is pinned to 0.32 with `bundled` because 0.43 needs Rust 1.89. Keep Rust 1.85 as the floor until the repo moves.
+- `rusqlite` is pinned to 0.32 with `bundled` because 0.43 needs Rust 1.89. Keep Rust 1.88 as the floor: the committed lockfile already requires it through transitive dependencies.
 
 References and optional commands:
 
