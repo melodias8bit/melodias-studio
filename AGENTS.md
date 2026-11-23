@@ -8,6 +8,7 @@ Rust 1.88+ (edition 2024) TUI + CLI (binary `melodias`). A source URL and a vibe
 - Single test: `cargo test <name>`. The suite needs no services, GPU or network. Tests live in `src/tests/<module>.rs` and are wired with `#[path = "..."] mod tests;`; `src/chip/*` and `src/refs/*` point at `../tests/`.
 - `make run` (TUI); `make generate URL='...' VIBE='...'` (release headless, log `output/run-<timestamp>.log`); `make log` tails the newest; `make install` copies the release binary to `~/.local/bin/melodias`.
 - `make image|judge|score|youtube|render|video DIR=output/<slug>`, `make history [ARGS='findings']`, `make dashboard`, `make backfill [ARGS=--replace]`, `make refs ARGS=...`. They use `cargo run --release`, so the first one builds release.
+- `make site` stages the screenshots and the birds overlay into `site/assets` and serves the static project page on `127.0.0.1:4000`. It is plain HTML, CSS and JS: no Jekyll, no build step. `.github/workflows/pages.yml` deploys `site/` to GitHub Pages.
 - `make backfill` needs `ffmpeg`, ImageMagick and `tesseract`; `make refs` needs ImageMagick for images inside packs; `make deploy` and `make status` need SSH to the GPU host; the rest runs locally.
 - `make dashboard` serves read-only charts on `http://127.0.0.1:7373/`.
 - TUI screenshots are generated, not hand-captured: `DUMP_TUI_HTML_DIR=/tmp/tui cargo test draws_without_leaving_the_terminal`; `PRINT_TUI=1` prints the buffer as ASCII.
