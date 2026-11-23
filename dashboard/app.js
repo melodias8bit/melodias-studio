@@ -24,10 +24,103 @@ const FINDING_LABELS = {
   AUD_LOUDNESS: "Loudness",
   AUD_PEAK: "True peak",
   AUD_CENTROID: "Timbre brightness",
+  AUD_REPEAT: "Repeating pattern",
+  AUD_VARIETY: "Pattern variety",
+  GATE_TYPE: "Rejected: size or aspect",
+  GATE_BLANK: "Rejected: blank frame",
+  GATE_TEXT: "Rejected: text on image",
+  GATE_DURATION: "Rejected: wrong length",
+  GATE_PEAK: "Rejected: clipping",
+  GATE_LEADING: "Rejected: leading silence",
 };
+
+// The findings table stores where a finding came from (deterministic or
+// judge), not which side it belongs to, so the Images/Audio filter reads the
+// code prefix instead. Gate codes map to the side they reject.
+function findingKind(code) {
+  if (code === "GATE_TYPE" || code === "GATE_BLANK" || code === "GATE_TEXT") {
+    return "image";
+  }
+  if (code === "GATE_DURATION" || code === "GATE_PEAK" || code === "GATE_LEADING") {
+    return "audio";
+  }
+  if (typeof code === "string" && code.startsWith("IMG_")) return "image";
+  if (typeof code === "string" && code.startsWith("AUD_")) return "audio";
+  return "other";
+}
 
 function findingLabel(code) {
   return FINDING_LABELS[code] || code;
+}
+
+// Editorial axes, in the same order and weights as score::EDITORIAL_WEIGHTS.
+// Keep them in sync: the bars show value times weight, the total is the sum.
+const AXIS_WEIGHTS = {
+  style: 0.25,
+  composition: 0.25,
+  eyes: 0.2,
+  retro: 0.15,
+  coherence: 0.15,
+};
+const AXIS_LABELS = {
+  style: "Style",
+  composition: "Composition",
+  eyes: "Eyes",
+  retro: "Retro character",
+  coherence: "Coherence",
+};
+
+function editorialAxes(detail) {
+  const verdict = detail.verdict || {};
+  const metaJudge = (detail.meta && detail.meta.judge) || null;
+  return (
+    (verdict.omni && verdict.omni.axes) ||
+    (verdict.judge && verdict.judge.axes) ||
+    (metaJudge && metaJudge.axes) ||
+    null
+  );
+}
+
+function axesRows(axes) {
+  return Object.keys(AXIS_WEIGHTS)
+    .map((key) => {
+      const value = axes && typeof axes[key] === "number" ? axes[key] : null;
+      return { key, label: AXIS_LABELS[key] || key, weight: AXIS_WEIGHTS[key], value };
+    })
+    .filter((row) => row.value !== null);
+}
+
+function axesTotal(rows) {
+  return rows.reduce((sum, row) => sum + row.value * row.weight, 0);
+}
+
+// Horizontal bars in the same visual language as the findings chart.
+function drawAxesBars(chart, rows, totalWidth, valueText) {
+  chart.replaceChildren();
+  const height = 20 + rows.length * 30;
+  chart.setAttribute("viewBox", `0 0 ${totalWidth} ${height}`);
+  const labelWidth = 180;
+  const left = labelWidth + 12;
+  const valueWidth = 170;
+  const width = totalWidth - left - valueWidth;
+  const barHeight = 16;
+  rows.forEach((row, index) => {
+    const top = 20 + index * 30;
+    const barWidth = Math.max(3, (Math.max(0, Math.min(100, row.value)) / 100) * width);
+    chart.append(
+      svg(
+        "text",
+        { x: labelWidth, y: top + barHeight - 3, class: "row-label", "text-anchor": "end" },
+        row.label,
+      ),
+      svg("rect", { x: left, y: top, width: barWidth, height: barHeight, rx: 3, class: "bar" }),
+      svg(
+        "text",
+        { x: left + barWidth + 8, y: top + barHeight - 3, class: "row-value" },
+        valueText(row),
+      ),
+    );
+  });
 }
 
 let timer = null;
@@ -331,7 +424,7 @@ function renderFindingsChart(data) {
   const findings =
     view.findingSource === "all"
       ? data.findings
-      : data.findings.filter((finding) => finding.source === view.findingSource);
+      : data.findings.filter((finding) => findingKind(finding.code) === view.findingSource);
   const rows = aggregateFindings(findings).slice(0, 12);
   const totalWidth = Math.max(520, Math.round(chart.clientWidth || 900));
   document.getElementById("findings-hint").textContent =
@@ -516,7 +609,7 @@ function renderEmpty(data) {
   document.getElementById("empty-detail").textContent = data.exists
     ? "The database has no runs yet. Finish a run, or run make backfill."
     : "No history database yet. Finish a run, or run make backfill to score the runs already in output/.";
-  for (const id of ["score-panel", "findings-panel", "outcomes-panel", "runs-panel"]) {
+  for (const id of ["score-panel", "findings-panel", "outcomes-panel", "axes-panel", "runs-panel"]) {
     document.getElementById(id).hidden = true;
   }
 }
@@ -730,6 +823,7 @@ function judgeFacts(detail) {
     reason,
     selection,
     mustFix,
+    axes: (omni && omni.axes) || (judge && judge.axes) || (metaJudge && metaJudge.axes) || null,
     provider: verdict && verdict.provider,
     model: verdict && verdict.model,
     usage: verdict && verdict.usage,
@@ -743,8 +837,11 @@ function judgeSection(detail) {
 
   const block = section("Judge verdict");
   if (summary) {
+    // The stored editorial is the weighted axes when the judge returned them;
+    // the raw best score is the fallback for older verdicts.
+    const score = detail.editorial ?? summary.score;
     const rows = [
-      ["Score", fmt(summary.score)],
+      ["Score", fmt(score)],
       ["Image", summary.selection && summary.selection.image],
       ["Audio", summary.selection && summary.selection.audio],
       ["Provider", summary.provider],
@@ -758,6 +855,23 @@ function judgeSection(detail) {
       rows.push(["Tokens", summary.usage.totalTokenCount]);
     }
     block.append(facts(rows));
+    const axisRows = axesRows(summary.axes);
+    if (axisRows.length) {
+      const axesChart = svg("svg", {
+        class: "chart axes-chart",
+        role: "img",
+        "aria-label": "Editorial axes for this run",
+      });
+      block.append(axesChart);
+      drawAxesBars(axesChart, axisRows, 900, (row) => `${row.value.toFixed(1)} · x${row.weight}`);
+      block.append(
+        node(
+          "p",
+          "hint axes-total",
+          `weighted editorial ${axesTotal(axisRows).toFixed(1)} · stored editorial ${fmt(detail.editorial)}`,
+        ),
+      );
+    }
     if (summary.reason) block.append(node("p", "verdict-reason", summary.reason));
     if (summary.mustFix.length) {
       const list = node("ul", "must-fix");
@@ -1037,6 +1151,50 @@ function renderSidebar(data) {
     `${totals.runs} runs · ${totals.findings} findings · ${totals.candidates} candidates`;
 }
 
+// Editorial axes of the latest judged run. One extra detail request per new
+// judged run, cached by id so the minute poll does not refetch.
+let axesRunId = null;
+let axesRowsCache = null;
+let axesHintCache = "";
+
+async function updateAxesPanel(data) {
+  const panel = document.getElementById("axes-panel");
+  const chart = document.getElementById("axes-chart");
+  const judged = data.runs.find(
+    (run) => run.editorial !== null && run.editorial !== undefined,
+  );
+  if (!judged) {
+    panel.hidden = true;
+    axesRunId = null;
+    axesRowsCache = null;
+    return;
+  }
+  panel.hidden = false;
+  if (axesRunId === judged.id) return;
+  axesRunId = judged.id;
+  const totalWidth = Math.max(520, Math.round(chart.clientWidth || 900));
+  try {
+    const response = await fetch(`/api/run?id=${encodeURIComponent(judged.id)}`, {
+      cache: "no-store",
+    });
+    const detail = await response.json().catch(() => null);
+    if (!response.ok || !detail) throw new Error("no detail");
+    const rows = axesRows(editorialAxes(detail));
+    if (!rows.length || axesRunId !== judged.id) {
+      if (!rows.length) panel.hidden = true;
+      return;
+    }
+    axesRowsCache = rows;
+    axesHintCache = `#${judged.id} · ${judged.slug} · weighted ${axesTotal(rows).toFixed(1)} · DB editorial ${fmt(judged.editorial)}`;
+    document.getElementById("axes-hint").textContent = axesHintCache;
+    drawAxesBars(chart, rows, totalWidth, (row) => `${row.value.toFixed(1)} · x${row.weight}`);
+  } catch (error) {
+    axesRunId = null;
+    axesRowsCache = null;
+    panel.hidden = true;
+  }
+}
+
 function render(data) {
   document.getElementById("banner").hidden = true;
   lastData = data;
@@ -1050,7 +1208,7 @@ function render(data) {
     renderEmpty(data);
     return;
   }
-  for (const id of ["score-panel", "findings-panel", "outcomes-panel", "runs-panel"]) {
+  for (const id of ["score-panel", "findings-panel", "outcomes-panel", "axes-panel", "runs-panel"]) {
     document.getElementById(id).hidden = false;
   }
   document.getElementById("empty").hidden = true;
@@ -1058,6 +1216,7 @@ function render(data) {
   renderFindingsChart(data);
   renderOutcomes(data);
   renderRunsTable(data);
+  updateAxesPanel(data);
 }
 
 function activate(button) {
@@ -1128,6 +1287,16 @@ window.addEventListener("resize", () => {
     renderScoreChart(lastData);
     renderFindingsChart(lastData);
     renderOutcomes(lastData);
+    if (axesRowsCache && !document.getElementById("axes-panel").hidden) {
+      const chart = document.getElementById("axes-chart");
+      document.getElementById("axes-hint").textContent = axesHintCache;
+      drawAxesBars(
+        chart,
+        axesRowsCache,
+        Math.max(520, Math.round(chart.clientWidth || 900)),
+        (row) => `${row.value.toFixed(1)} · x${row.weight}`,
+      );
+    }
   }, 150);
 });
 

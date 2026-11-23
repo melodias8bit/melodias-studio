@@ -8,11 +8,23 @@ use serde_json::Value;
 
 use crate::media;
 
-pub const RUBRIC: &str = "score-v1";
+pub const RUBRIC: &str = "score-v3";
 pub const WEIGHT_TECHNICAL: f64 = 0.6;
 pub const TARGET_TOTAL: f64 = 80.0;
 pub const TARGET_TECHNICAL: f64 = 85.0;
 pub const TARGET_EDITORIAL: f64 = 70.0;
+
+/// Editorial axes and weights, from RFC 0002. The judge scores each axis
+/// 0..100; the editorial score is the weighted sum. Composition and style
+/// carry the thumbnail readability and channel adherence the judge is for;
+/// eyes keeps the past defect visible; retro and coherence split the rest.
+pub const EDITORIAL_WEIGHTS: &[(&str, f64)] = &[
+    ("style", 0.25),
+    ("composition", 0.25),
+    ("eyes", 0.20),
+    ("retro", 0.15),
+    ("coherence", 0.15),
+];
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Finding {
@@ -87,6 +99,13 @@ pub struct AudioMetrics {
     pub high_share: f64,
     pub build_db: f64,
     pub silence: f64,
+    pub leading: f64,
+    /// Longest run of near-identical 2 s windows, in seconds. A loop that
+    /// stalls on one pattern for 15 s or more trips AUD_REPEAT.
+    pub repeat_sec: f64,
+    /// Share of 30 s windows with five or more distinct chroma patterns.
+    /// A track that turns over motifs scores here even if one section stalls.
+    pub variety: f64,
 }
 
 /// One line of the rubric: the code, the measured value and the points it earned.
@@ -288,6 +307,8 @@ pub fn score_audio(metrics: &AudioMetrics, target: f64, master: bool) -> SideSco
     builder.add(audio_highs(metrics.high_share));
     builder.add(audio_build(metrics.build_db));
     builder.add(audio_silence(metrics.silence));
+    builder.add(audio_repeat(metrics.repeat_sec));
+    builder.add(audio_variety(metrics.variety));
     if master {
         builder.add(audio_loudness(metrics.lufs));
         builder.add(audio_peak(metrics.peak));
@@ -414,6 +435,50 @@ fn audio_silence(seconds: f64) -> Metric {
         value: seconds,
         threshold: 1.0,
         message: format!("{seconds:.2} s silence in the body"),
+    }
+}
+
+/// Chiptune loops by nature, so normal looping is not penalized: only a long
+/// stall on one pattern loses points. At most medium, so the retry loop can
+/// still pick it up and patch the arrangement.
+fn audio_repeat(seconds: f64) -> Metric {
+    let points = if seconds <= 8.0 {
+        8.0
+    } else if seconds >= 15.0 {
+        0.0
+    } else {
+        lerp(seconds, 8.0, 15.0, 8.0, 0.0)
+    };
+    Metric {
+        code: "AUD_REPEAT",
+        metric: "repeat_sec",
+        points,
+        max: 8.0,
+        value: seconds,
+        threshold: 8.0,
+        message: format!("{seconds:.1} s longest identical run"),
+    }
+}
+
+/// Pattern turnover: the share of 30 s windows holding five or more distinct
+/// chroma patterns. Rewards the track that turns over motifs even when one
+/// section stalls; a uniformly middling loop scores near zero.
+fn audio_variety(share: f64) -> Metric {
+    let points = if share <= 0.20 {
+        0.0
+    } else if share >= 0.60 {
+        8.0
+    } else {
+        lerp(share, 0.20, 0.60, 0.0, 8.0)
+    };
+    Metric {
+        code: "AUD_VARIETY",
+        metric: "dense_share",
+        points,
+        max: 8.0,
+        value: share,
+        threshold: 0.60,
+        message: format!("{:.0}% of 30 s windows are dense", share * 100.0),
     }
 }
 
@@ -605,6 +670,8 @@ pub fn audio_metrics(path: &Path) -> Result<AudioMetrics> {
         "-".into(),
     ])?;
     let silence = parse_silence(&silence_text, duration);
+    let leading = parse_leading(&silence_text);
+    let (repeat_sec, variety) = pattern_stats(path).unwrap_or((0.0, 0.0));
 
     let intro_end = 20.0f64.min(duration / 4.0);
     let mid_start = (duration / 2.0 - 10.0).max(0.0);
@@ -620,6 +687,9 @@ pub fn audio_metrics(path: &Path) -> Result<AudioMetrics> {
         high_share,
         build_db: intro - mid,
         silence,
+        leading,
+        repeat_sec,
+        variety,
     })
 }
 
@@ -762,6 +832,247 @@ fn value_after(line: &str, needle: &str) -> Option<f64> {
         .ok()
 }
 
+/// Silence at the very start of the track. A leading gap over 1.5 s trips
+/// GATE_LEADING. The tail is excluded on purpose: the master fade leaves an
+/// intentional near-silence at the end.
+fn parse_leading(text: &str) -> f64 {
+    let mut start = 0.0;
+    let mut longest = 0.0f64;
+    for line in text.lines() {
+        if let Some(value) = value_after(line, "silence_start:") {
+            start = value;
+        }
+        if let Some(value) = value_after(line, "silence_duration:")
+            && start < 0.5
+        {
+            longest = longest.max(value);
+        }
+    }
+    longest
+}
+
+/// Longest run of near-identical 2 s windows, in seconds. One ffmpeg decode
+/// at 8 kHz mono; the math over the samples is pure Rust. Windows quieter
+/// than -50 dB break the run, so fades and silences never count as loops.
+fn pattern_stats(path: &Path) -> Result<(f64, f64)> {
+    let samples = decode_mono_8k(path)?;
+    Ok((
+        longest_run(&window_features(&samples)),
+        variety_share(&chroma_windows(&samples)),
+    ))
+}
+
+fn decode_mono_8k(path: &Path) -> Result<Vec<f32>> {
+    let bytes = stdout_bytes(&[
+        "-v".into(),
+        "error".into(),
+        "-i".into(),
+        path.display().to_string(),
+        "-f".into(),
+        "f32le".into(),
+        "-ac".into(),
+        "1".into(),
+        "-ar".into(),
+        "8000".into(),
+        "-".into(),
+    ])?;
+    Ok(bytes
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+        .collect())
+}
+
+fn window_features(samples: &[f32]) -> Vec<(f64, f64)> {
+    const WIN: usize = 2 * 8000;
+    samples
+        .chunks(WIN)
+        .take_while(|chunk| chunk.len() == WIN)
+        .map(|chunk| {
+            let rms = (chunk.iter().map(|s| (*s as f64).powi(2)).sum::<f64>() / chunk.len() as f64)
+                .sqrt();
+            let mut crosses = 0u32;
+            for pair in chunk.windows(2) {
+                if (pair[0] < 0.0) != (pair[1] < 0.0) {
+                    crosses += 1;
+                }
+            }
+            (rms, crosses as f64 / chunk.len() as f64)
+        })
+        .collect()
+}
+
+fn longest_run(windows: &[(f64, f64)]) -> f64 {
+    const DB: f64 = 1.0;
+    const ZCR: f64 = 0.15;
+    const QUIET: f64 = 3.16e-3; // -50 dB
+    if windows.is_empty() {
+        return 0.0;
+    }
+    let mut best = 1usize;
+    let mut run = 1usize;
+    for pair in windows.windows(2) {
+        let ((rms_a, zcr_a), (rms_b, zcr_b)) = (pair[0], pair[1]);
+        let similar = rms_a >= QUIET
+            && rms_b >= QUIET
+            && (to_db(rms_a) - to_db(rms_b)).abs() < DB
+            && ((zcr_a - zcr_b).abs() / zcr_a.max(zcr_b).max(1e-6)) < ZCR;
+        if similar {
+            run += 1;
+            best = best.max(run);
+        } else {
+            run = 1;
+        }
+    }
+    best as f64 * 2.0
+}
+
+fn to_db(value: f64) -> f64 {
+    20.0 * value.max(1e-9).log10()
+}
+
+/// Iterative radix-2 FFT, in place. Only the magnitudes are used, so no
+/// scaling is applied.
+fn fft(re: &mut [f64], im: &mut [f64]) {
+    let n = re.len();
+    debug_assert!(n.is_power_of_two() && n == im.len());
+    let mut j = 0usize;
+    for i in 1..n {
+        let mut bit = n >> 1;
+        while j & bit != 0 {
+            j ^= bit;
+            bit >>= 1;
+        }
+        j ^= bit;
+        if i < j {
+            re.swap(i, j);
+            im.swap(i, j);
+        }
+    }
+    let mut len = 2;
+    while len <= n {
+        let angle = -2.0 * std::f64::consts::PI / len as f64;
+        let (wr, wi) = (angle.cos(), angle.sin());
+        let half = len / 2;
+        let mut i = 0;
+        while i < n {
+            let (mut cwr, mut cwi) = (1.0, 0.0);
+            for k in 0..half {
+                let ur = re[i + k];
+                let ui = im[i + k];
+                let vr = re[i + k + half] * cwr - im[i + k + half] * cwi;
+                let vi = re[i + k + half] * cwi + im[i + k + half] * cwr;
+                re[i + k] = ur + vr;
+                im[i + k] = ui + vi;
+                re[i + k + half] = ur - vr;
+                im[i + k + half] = ui - vi;
+                let next = cwr * wr - cwi * wi;
+                cwi = cwr * wi + cwi * wr;
+                cwr = next;
+            }
+            i += len;
+        }
+        len *= 2;
+    }
+}
+
+/// One chroma vector plus RMS per 1 s window: Hann, 8192-point FFT with zero
+/// padding, energy per pitch class between 55 Hz and 4 kHz, normalized.
+fn chroma_windows(samples: &[f32]) -> Vec<([f64; 12], f64)> {
+    const WIN: usize = 8000;
+    const FFT: usize = 8192;
+    samples
+        .chunks(WIN)
+        .take_while(|chunk| chunk.len() == WIN)
+        .map(|chunk| {
+            let mut re = vec![0.0; FFT];
+            let mut im = vec![0.0; FFT];
+            for (i, sample) in chunk.iter().enumerate() {
+                let window = 0.5 - 0.5 * (2.0 * std::f64::consts::PI * i as f64 / WIN as f64).cos();
+                re[i] = *sample as f64 * window;
+            }
+            fft(&mut re, &mut im);
+            let mut chroma = [0.0; 12];
+            for (k, (r, i)) in re.iter().zip(im.iter()).enumerate().take(FFT / 2) {
+                let freq = k as f64 * 8000.0 / FFT as f64;
+                if freq < 55.0 || freq > 4000.0 {
+                    continue;
+                }
+                let midi = (69.0 + 12.0 * (freq / 440.0).log2()).round() as i32;
+                // Magnitude, not energy: squared spectra turn every transient
+                // into a new pattern and drown the harmony the ear follows.
+                chroma[midi.rem_euclid(12) as usize] += (r * r + i * i).sqrt();
+            }
+            let sum: f64 = chroma.iter().sum();
+            for value in chroma.iter_mut() {
+                *value /= sum + 1e-9;
+            }
+            let rms = (chunk.iter().map(|s| (*s as f64).powi(2)).sum::<f64>() / chunk.len() as f64)
+                .sqrt();
+            (chroma, rms)
+        })
+        .collect()
+}
+
+fn chroma_cos(a: &[f64; 12], b: &[f64; 12]) -> f64 {
+    let dot: f64 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+    let norm = (a.iter().map(|x| x * x).sum::<f64>() * b.iter().map(|x| x * x).sum::<f64>()).sqrt();
+    dot / norm.max(1e-9)
+}
+
+/// Share of 30 s windows holding five or more distinct patterns. Greedy:
+/// a window joins the set when it is unlike everything already seen.
+/// Quiet windows are skipped, so intros and fade tails never count as ideas.
+fn variety_share(windows: &[([f64; 12], f64)]) -> f64 {
+    const QUIET: f64 = 3.16e-3; // -50 dB
+    const PER_WINDOW: usize = 30;
+    const DENSE: usize = 5;
+    let chunks: Vec<_> = windows.chunks(PER_WINDOW).collect();
+    if chunks.is_empty() {
+        return 0.0;
+    }
+    let dense = chunks
+        .iter()
+        .filter(|chunk| {
+            let mut patterns: Vec<&[f64; 12]> = Vec::new();
+            for (chroma, rms) in chunk.iter() {
+                if *rms < QUIET {
+                    continue;
+                }
+                if patterns.iter().all(|seen| chroma_cos(chroma, seen) < 0.90) {
+                    patterns.push(chroma);
+                }
+            }
+            patterns.len() >= DENSE
+        })
+        .count();
+    dense as f64 / chunks.len() as f64
+}
+
+/// Weighted editorial score from the five judge axes. Missing axes count as
+/// zero; values outside 0..100 are clamped so one odd answer cannot bloat
+/// the total.
+pub fn editorial_from_axes(axes: &Value) -> Option<f64> {
+    let container = if axes.get("axes").is_some() {
+        &axes["axes"]
+    } else {
+        axes
+    };
+    if !container.is_object() {
+        return None;
+    }
+    let mut total = 0.0;
+    let mut found = false;
+    for (key, weight) in EDITORIAL_WEIGHTS {
+        if let Some(value) = container.get(key).and_then(Value::as_f64) {
+            total += value.clamp(0.0, 100.0) * weight;
+            found = true;
+        }
+    }
+    found.then(|| (total * 100.0).round() / 100.0)
+}
+
 fn candidate(
     index: usize,
     file: &Path,
@@ -805,6 +1116,17 @@ fn gate(
 
 fn gates(image: &ImageMetrics, audio: &AudioMetrics, target: f64) -> Vec<Finding> {
     let mut findings = Vec::new();
+    findings.extend(image_gates(image));
+    findings.extend(audio_gates(audio, target));
+    findings
+}
+
+/// Hard gates for one thumbnail. A gated candidate is rejected before any
+/// soft score counts: blank frames and clear text never reach the ranking.
+/// One or two OCR words stay soft (IMG_TEXT) because illustrated art invents
+/// junk tokens; three or more is a hard fail.
+pub fn image_gates(image: &ImageMetrics) -> Vec<Finding> {
+    let mut findings = Vec::new();
     let expected = 16.0 / 9.0;
     if (image.aspect - expected).abs() > expected * 0.01 || image.width < 1280 || image.height < 720
     {
@@ -819,6 +1141,35 @@ fn gates(image: &ImageMetrics, audio: &AudioMetrics, target: f64) -> Vec<Finding
             ),
         ));
     }
+    if image.luma_std < 0.02 {
+        findings.push(gate(
+            "GATE_BLANK",
+            "luma_std",
+            image.luma_std,
+            0.02,
+            format!("luma std {:.3}: the frame is blank or flat", image.luma_std),
+        ));
+    }
+    if image.ocr_words.unwrap_or(0) >= 3 {
+        findings.push(gate(
+            "GATE_TEXT",
+            "ocr_words",
+            image.ocr_words.unwrap_or(0) as f64,
+            3.0,
+            format!(
+                "{} OCR words: text or watermark on the thumbnail",
+                image.ocr_words.unwrap_or(0)
+            ),
+        ));
+    }
+    findings
+}
+
+/// Hard gates for one track. Duration and clipping reject the candidate;
+/// a leading silence over 1.5 s rejects it too. Loudness, build and timbre
+/// stay soft: they point in the right direction but do not fail a take.
+pub fn audio_gates(audio: &AudioMetrics, target: f64) -> Vec<Finding> {
+    let mut findings = Vec::new();
     if (audio.duration - target).abs() > 2.0 {
         findings.push(gate(
             "GATE_DURATION",
@@ -837,26 +1188,50 @@ fn gates(image: &ImageMetrics, audio: &AudioMetrics, target: f64) -> Vec<Finding
             format!("{:.1} dBFS clips", audio.peak),
         ));
     }
+    if audio.leading > 1.5 {
+        findings.push(gate(
+            "GATE_LEADING",
+            "leading_silence_sec",
+            audio.leading,
+            1.5,
+            format!("{:.2} s of silence at the start", audio.leading),
+        ));
+    }
     findings
 }
 
 fn editorial(dir: &Path) -> Option<f64> {
     let raw = fs::read(dir.join("work/judge/verdict.json")).ok()?;
     let verdict: Value = serde_json::from_slice(&raw).ok()?;
+    // New shape first: the weighted axes. Legacy verdicts only carry one
+    // opaque score under omni.best or judge.
+    for pointer in ["/omni/axes", "/judge/axes", "/axes"] {
+        if let Some(axes) = verdict.pointer(pointer)
+            && let Some(score) = editorial_from_axes(axes)
+        {
+            return Some(score);
+        }
+    }
     verdict
         .pointer("/omni/best/score")
         .and_then(Value::as_f64)
         .or_else(|| verdict.pointer("/judge/score").and_then(Value::as_f64))
 }
 
-/// Scores one pool image. The retry loop uses it before the run is finished.
-pub fn image_side(path: &Path) -> Result<SideScore> {
-    Ok(score_image(&image_metrics(path)?))
+/// Scores one pool image and returns its hard gates from the same metrics,
+/// so the pool discards a rejected candidate without measuring twice.
+pub fn gated_image_side(path: &Path) -> Result<(SideScore, Vec<Finding>)> {
+    let metrics = image_metrics(path)?;
+    let gates = image_gates(&metrics);
+    Ok((score_image(&metrics), gates))
 }
 
-/// Scores one audio draft, without the master-only metrics.
-pub fn draft_side(path: &Path, target: f64) -> Result<SideScore> {
-    Ok(score_audio(&audio_metrics(path)?, target, false))
+/// Scores one audio draft and returns its hard gates (duration against the
+/// draft target, clipping, leading silence) from the same metrics.
+pub fn gated_draft_side(path: &Path, target: f64) -> Result<(SideScore, Vec<Finding>)> {
+    let metrics = audio_metrics(path)?;
+    let gates = audio_gates(&metrics, target);
+    Ok((score_audio(&metrics, target, false), gates))
 }
 
 /// Writes the full report to `work/score.json` and returns the path.

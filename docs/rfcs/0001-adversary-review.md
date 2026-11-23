@@ -1,6 +1,6 @@
 # Adversary review and video assembly
 
-Status: in progress. Phases 1, 2 and the cloud judge are implemented, and so is the assembly with ffmpeg and Remotion. The pipeline renders with Remotion by default; ffmpeg is the explicit fast path. The local hard gates are not; the deterministic retry loop is specified in RFC 0002 and implemented. The judge preselects the pair and the TUI keeps the manual override.
+Status: in progress. Phases 1, 2 and the cloud judge are implemented, and so is the assembly with ffmpeg and Remotion. The pipeline renders with Remotion by default; ffmpeg is the explicit fast path. The local hard gates are implemented as a first set (type, blank, text, duration, peak, leading silence, decode); palette distance, band balance, stable tempo and vocal detection stay unmeasured. The deterministic retry loop is specified in RFC 0002 and implemented. The judge preselects the pair and the TUI keeps the manual override.
 
 ## Why
 
@@ -67,13 +67,13 @@ Two layers, cheapest first.
 
 ### Hard gates
 
-Deterministic checks that do not need a model:
+Deterministic checks that need no model. Implemented in `src/score.rs` (`image_gates`, `audio_gates`) and enforced per candidate in the pool (`src/pipeline.rs`): a gated candidate is discarded before any soft score counts, and the final pair still has to pass them in `score_run`:
 
-- Image: valid PNG, exact size, not blank (pixel variance), no text or watermark, palette distance to the channel palette.
-- Audio: duration tolerance, no clipping, loudness window, no silence at the edges, intro ramp and outro decay present, band balance against the reference, stable tempo.
-- Both: the fixed rules, such as instrumental only.
+- Image: valid PNG (`GATE_DECODE` as a scoring error), exact size and aspect (`GATE_TYPE`: 16:9 within 1 %, at least 1280x720), not blank (`GATE_BLANK`: luma std below 0.02), no clear text (`GATE_TEXT`: 3 or more OCR words; one or two stay soft as `IMG_TEXT` because illustrated art invents junk tokens).
+- Audio: duration tolerance (`GATE_DURATION`: within 2 s), no clipping (`GATE_PEAK`: true peak above 0 dBFS), no leading silence (`GATE_LEADING`: over 1.5 s of silence at the start; the tail is excluded because the master fade leaves an intentional near-silence).
+- Decode failures in the pool log a warning and leave the candidate unscored, which excludes it from the best pick.
 
-A candidate that fails a hard gate is discarded before any scoring.
+Still unmeasured, by design: palette distance to the channel palette (the unique-color count stays soft as `IMG_PALETTE` because a hard cap would reject every current run), band balance against the reference, stable tempo, intro ramp and outro decay beyond what `AUD_BUILD` and the master fades cover, and vocal detection for the instrumental rule (source separation is the reliable option but adds a model and time). The judge `must_fix` codes stay the counterweight for eyes, composition and style.
 
 ### Soft score
 
@@ -144,7 +144,7 @@ The omni model is the part that actually sees the eyes, the palette and the comp
 
 The Ultra is the arbiter, not the perception layer. It never sees the raw media.
 
-The judge is implemented in `src/judge.rs`. It runs before the review, writes `work/judge/verdict.json` (provider, model, token usage, both reports and the selection), and returns a suggestion that preselects the TUI review. Without a provider key the judge is skipped and the manual pick still works.
+The judge is implemented in `src/judge.rs`. It runs before the review, writes `work/judge/verdict.json` (provider, model, token usage, both reports, the axes and the selection), and returns a suggestion that preselects the TUI review. Without a provider key the judge is skipped and the manual pick still works. The editorial score is the weighted sum of the five axes (weights in RFC 0002); legacy verdicts without axes fall back to the single opaque score.
 
 ### Decider
 
@@ -267,13 +267,15 @@ The same keys belong in `config.toml` once the feature exists. Image seeds and s
 
 1. Image steps and seed through `sd_cpp_extra_args`, plus the draft/final policy. Seed, steps and the image tier (full steps) are done; the audio draft policy is pending validation.
 2. Manifest and candidate pools, with a manual pick in the TUI. No new models. Done: `meta.json` records the candidates and the selection.
-3. Deterministic hard gates and local metrics.
+3. Deterministic hard gates and local metrics. Done as a first set: `GATE_TYPE`, `GATE_BLANK`, `GATE_TEXT`, `GATE_DURATION`, `GATE_PEAK`, `GATE_LEADING`, plus decode errors; enforced per candidate in the pool and on the final pair. Palette distance, band balance, tempo and vocal detection stay open.
 4. Omni perception + Ultra judge, with the strict JSON contract and fail-open. Done.
 5. Review loop with rounds and thresholds; the TUI can still override the pick.
 6. Video assembly: done. Remotion is the default and ffmpeg is the explicit fast path; the preset agent is pending.
 7. Bar-aligned splicing, only if the seams measure clean.
 
 ## Risks and open questions
+
+- Image throughput, to test later: batch the pool candidates in one request when sd-server supports it, or switch to a distilled few-step model and re-run the 12 vs 20 step A/B. Steps are sequential by nature and cannot be split; the saving comes from fuller GPU use or fewer steps at equal quality.
 
 - Vocal detection for the instrumental rule. Source separation is the reliable option but adds a model and time.
 - Free model availability is not guaranteed. `pplx-decider` already returned 404; the Nemotron IDs can change too.

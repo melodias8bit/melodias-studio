@@ -171,12 +171,26 @@ pub fn serve(db: PathBuf, out: PathBuf, port: u16, limit: usize) -> Result<()> {
         };
         let state = Arc::clone(&state);
         thread::spawn(move || {
-            if let Err(error) = handle(stream, &state, limit) {
+            if let Err(error) = handle(stream, &state, limit)
+                && !is_client_disconnect(&error)
+            {
                 eprintln!("dashboard: {error:#}");
             }
         });
     }
     Ok(())
+}
+
+/// A client going away mid-request (a media load cancelled on navigation, a
+/// poll superseded by a closed tab) is routine traffic, not a server failure.
+fn is_client_disconnect(error: &std::io::Error) -> bool {
+    matches!(
+        error.kind(),
+        std::io::ErrorKind::ConnectionReset
+            | std::io::ErrorKind::ConnectionAborted
+            | std::io::ErrorKind::BrokenPipe
+            | std::io::ErrorKind::UnexpectedEof
+    )
 }
 
 struct State {

@@ -1,19 +1,20 @@
 # Dashboard
 
 The local, read-only dashboard over the history database. It shows the score
-over runs, the findings that cost the most, the outcome mix and the run table,
-with a left sidebar that filters the table and the findings chart.
+over runs, the findings that cost the most, the outcome mix, the editorial
+axes of the latest judged run and the run table, with a left sidebar that
+filters the table and the findings chart.
 
 ## Screenshots
 
 ![Dashboard home](../docs/assets/dashboard-home.png)
 
-The home: totals, score trend, findings, outcomes and runs. The sidebar filters
-runs by outcome and findings by source, and links to the latest and best run.
+The home: totals, score trend, findings, outcomes, editorial axes and runs. The sidebar filters
+runs by outcome and findings by side (image or audio codes), and links to the latest and best run.
 
 ![Run detail](../docs/assets/dashboard-detail.png)
 
-The run screen: summary, media, judge verdict, candidates, findings, patches,
+The run screen: summary, media, judge verdict with the five editorial axes, candidates, findings, patches,
 files and the raw documents. It replaces the overview in the same page when you
 click a row or open `?run=<id>`; `All runs`, `Escape` and the browser back button
 return to the overview.

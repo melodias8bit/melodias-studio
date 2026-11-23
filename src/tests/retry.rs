@@ -24,10 +24,17 @@ fn every_table_code_has_a_patch() {
         "AUD_CENTROID",
         "AUD_BUILD",
         "AUD_SILENCE",
+        "AUD_REPEAT",
+        "AUD_VARIETY",
     ] {
         assert!(patch_for(code).is_some(), "{code} has no patch");
     }
     assert!(patch_for("GATE_TYPE").is_none());
+    assert!(patch_for("GATE_BLANK").is_none());
+    assert!(patch_for("GATE_TEXT").is_none());
+    assert!(patch_for("GATE_DURATION").is_none());
+    assert!(patch_for("GATE_PEAK").is_none());
+    assert!(patch_for("GATE_LEADING").is_none());
 }
 
 #[test]
