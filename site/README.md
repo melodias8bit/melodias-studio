@@ -37,9 +37,11 @@ custom domain is added, update the canonical and Open Graph URLs in
 
 ## What to update
 
-- Screenshots: regenerate them in `docs/assets` (the TUI ones come from
-  `DUMP_TUI_HTML_DIR=... cargo test draws_without_leaving_the_terminal`) and the
-  page picks them up on the next stage.
+- Gallery: `docs/assets/tui-review.png` (regenerate with
+  `DUMP_TUI_HTML_DIR=... cargo test draws_without_leaving_the_terminal`) plus
+  six pool stills (`docs/assets/gallery-*.webp`, winners and losers from four
+  runs, 960 px WebP). The dashboard keeps its own screenshots in
+  `dashboard/README.md`.
 - Copy: the stage list in the page mirrors `STAGES` in `src/pipeline.rs`; the
   targets in the commands table mirror the `Makefile`.
 - Tabs: the TUI panel shows `docs/assets/tui.png`, the headless panel the

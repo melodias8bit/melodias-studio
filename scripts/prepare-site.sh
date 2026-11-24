@@ -29,6 +29,10 @@ for name in banner.png tui.png tui-review.png dashboard-home.png dashboard-detai
   copy "$images/$name" "$img_out/$name"
 done
 
+for name in gallery-battle-1.webp gallery-battle-2.webp gallery-finale-1.webp gallery-finale-2.webp gallery-artcore.webp gallery-violin.webp; do
+  copy "$images/$name" "$img_out/$name"
+done
+
 copy "$overlays/birds.mp4" "$video_out/birds.mp4"
 
 if [ -f "$images/demo-thumbnail.webp" ]; then
@@ -48,4 +52,4 @@ if [ "$status" -ne 0 ]; then
   exit 1
 fi
 
-printf 'site: staged 5 images, 1 overlay and the demo still, audio and video\n'
+printf 'site: staged 5 images, 6 gallery stills and 1 overlay plus the demo still, audio and video\n'
