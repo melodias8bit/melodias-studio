@@ -42,30 +42,35 @@ custom domain is added, update the canonical and Open Graph URLs in
   page picks them up on the next stage.
 - Copy: the stage list in the page mirrors `STAGES` in `src/pipeline.rs`; the
   targets in the commands table mirror the `Makefile`.
+- Theme: the page follows [DESIGN.md](DESIGN.md) (Mercury: onyx canvas,
+  graphite cards, one cobalt action, Inter only, no shadows). Keep new styles
+  inside that system.
 - Artwork: `banner.png` is the README banner. Keep the character credit in the
   footer while it shows Frieren.
 - Demo media: the page shows one real run from `output/`. The committed
-  sources are `docs/assets/demo-thumbnail.webp` (or `.png`), `docs/assets/demo-audio.mp3`
+  sources are `docs/assets/demo-thumbnail.png`, `docs/assets/demo-audio.mp3`
   and `docs/assets/demo-video.mp4`; `scripts/prepare-site.sh` stages them into
   `site/assets/img/` and `site/assets/media/`. Current run:
-  `output/world-s-most-epic-emotional-violin`, vibe "World's Most Epic Emotional Violin"
-  (total 70.13, the highest of the local runs; none met the 80 target).
+  `output/epic-8-bit-orchestral-finale`, vibe "epic 8-bit orchestral finale"
+  (total 69.25, the highest recent score for this vibe).
   Refresh them with:
 
   ```bash
-  slug=world-s-most-epic-emotional-violin
-  ffmpeg -y -i output/$slug/thumbnail.png -vf scale=1280:-2 \
-    -c:v libwebp -quality 85 docs/assets/demo-thumbnail.webp
+  slug=epic-8-bit-orchestral-finale
+  cp output/$slug/thumbnail.png docs/assets/demo-thumbnail.png
   ffmpeg -y -ss 45 -t 30 -i output/$slug/audio.mp3 \
     -af "afade=t=in:st=0:d=1,afade=t=out:st=29:d=1" \
     -b:a 96k docs/assets/demo-audio.mp3
   ffmpeg -y -ss 45 -t 30 -i output/$slug/video.mp4 \
-    -vf scale=1280:-2 -c:v libx264 -crf 27 -preset slow \
+    -vf scale=1280:-2 -c:v libx264 -crf 30 -preset slow \
     -c:a aac -b:a 96k -movflags +faststart docs/assets/demo-video.mp4
   ls -lh docs/assets/demo-*
   ```
 
-  Keep the still under 1 MB, the audio under 1 MB and the clip under 4 MB
-  so the whole page stays under about 12 MB.
+  If the still is over 1.5 MB, convert it to WebP instead of copying it:
+  `ffmpeg -y -i output/$slug/thumbnail.png -vf scale=1280:-2 -c:v libwebp
+  -quality 85 docs/assets/demo-thumbnail.webp`, and point the page poster at
+  the `.webp` file. Keep the still under 1 MB, the audio under 1 MB and the
+  clip under 4 MB so the whole page stays under about 12 MB.
   Follow [docs/runbooks/site-demo.md](../docs/runbooks/site-demo.md)
   on the machine with the generated runs for the full checklist.

@@ -1,6 +1,6 @@
 # melodias-studio
 
-Rust 1.88+ (edition 2024) TUI + CLI (binary `melodias`). A source URL and a vibe produce `output/<slug>/` with `thumbnail.png`, `audio.mp3`, `video.mp4`, `youtube.txt`, `meta.json`, `candidates/` and `work/`. The reference only conditions timbre: the thumbnail and track are new material. No args opens the TUI, `<url> <vibe>` runs headless, and the remaining subcommands inspect or rework runs, history, references, or a single track.
+Rust 1.90+ (edition 2024) TUI + CLI (binary `melodias`). A source URL and a vibe produce `output/<slug>/` with `thumbnail.png`, `audio.mp3`, `video.mp4`, `youtube.txt`, `meta.json`, `candidates/` and `work/`. The reference only conditions timbre: the thumbnail and track are new material. No args opens the TUI, `<url> <vibe>` runs headless, and the remaining subcommands inspect or rework runs, history, references, or a single track.
 
 ## Commands
 
@@ -51,7 +51,7 @@ Scoring and history:
 - The dashboard has no Node or build step; its HTML, CSS and JS in `dashboard/` are `include_str!`, so editing them needs a rebuild. A database without the expected tables answers 500 and logs the SQL error; a missing file renders an empty state.
 - `melodias backfill` writes through the same `history::insert` as the pipeline, so findings attach to the run with a null `candidate_id` like the normal write.
 - `melodias image` regenerates from the selected candidate's stored `prompt`, `negative_prompt`, seed and references, falling back to the global prompt when the candidate has none. A patched retry is reproducible without the config file.
-- `rusqlite` is pinned to 0.32 with `bundled` because 0.43 needs Rust 1.89. Keep Rust 1.88 as the floor: the committed lockfile already requires it through transitive dependencies.
+- `rusqlite` is pinned to 0.32 with `bundled` because 0.43 needs Rust 1.89. Keep Rust 1.90 as the floor: `Cargo.toml` declares it and the committed lockfile already requires 1.88 through transitive dependencies.
 
 References and optional commands:
 
@@ -69,7 +69,7 @@ References and optional commands:
 
 ## Agent skills
 
-- Repo-owned skills live in `.agents/skills/`: `melodias-pipeline`, `melodias-render`, `melodias-config`, `melodias-testing`, `melodias-history` and `melodias-refs`. They encode the 11 stages, the Remotion/ffmpeg split, config precedence, the inline test layout, the history/dashboard rules and the reference library; update them when that behavior changes.
+- Repo-owned skills live in `.agents/skills/`: `melodias-pipeline`, `melodias-render`, `melodias-config`, `melodias-testing`, `melodias-history`, `melodias-refs` and `web3d`. They encode the 11 stages, the Remotion/ffmpeg split, config precedence, the inline test layout, the history/dashboard rules, the reference library and the WebGL patterns for the page and video; update them when that behavior changes.
 - `make skills-check` (also the last step of `make check`) validates every skill's frontmatter, the repository paths it cites, and the `make` targets and test names it mentions. Keep skills in English and without em dashes.
 - Registry skills (`rust-best-practices`, `rust-testing`, `ratatui-tui`, `ffmpeg`) are pinned by source commit in `skills-lock.json`. Refresh with `npx skills add <repo> -s <skill> -a opencode -y` and review the diff.
 - `ratatui-tui` targets 0.30 while the repo pins 0.29, and `rust-testing` suggests crates that are not dependencies. Use their patterns, not their setup steps.

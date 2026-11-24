@@ -2,14 +2,14 @@
 
 ## Requirements
 
-- Rust 1.85+ (`rustup default stable`) to build from source.
+- Rust 1.90+ (`rustup default stable`) to build from source.
 - `yt-dlp`, `ffmpeg` and `ffprobe` on `PATH`. `yt-dlp` pulls the timbre reference; the thumbnail and the track are generated from scratch.
 - Three HTTP services:
   - a chat completions server for the thumbnail prompt (llama.cpp or any OpenAI-compatible endpoint)
   - a stable-diffusion.cpp server for the image (OpenAI images API)
   - an audio.cpp server with the ACE-Step family for the music (`/v1/tasks/run`)
 - `ssh` and `scp` only when the services run on another host or when the lifecycle commands need them.
-- Node 18+ and pnpm only for the produced Remotion video.
+- Node 24+ and pnpm only for the produced Remotion video.
 
 No particular GPU or model is required.
 
