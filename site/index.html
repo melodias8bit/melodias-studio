@@ -68,7 +68,7 @@
           </div>
 
           <div class="hud" aria-label="At a glance">
-            <span>Rust <b>1.88+</b></span>
+            <span>Rust <b>1.90+</b></span>
             <span>Stages <b>11</b></span>
             <span>Thumbnail <b>1280&times;720</b></span>
             <span>Track <b>3:30</b></span>
@@ -93,7 +93,7 @@
       <div class="wrap hero-rune">
         <figure class="rune">
           <figcaption>
-            <span>$ quick cast</span>
+            <span>$ install</span>
             <button class="copy" type="button" data-copy="quick-cmd">copy</button>
           </figcaption>
           <pre id="quick-cmd"><code>git clone https://github.com/melodias8bit/melodias-studio.git
@@ -218,7 +218,7 @@ melodias</code></pre>
           <li class="stage">
             <span class="stage-num">08</span>
             <span class="stage-name">Review</span>
-            <span class="stage-desc">Pick one still and one take, or accept the judge.</span>
+            <span class="stage-desc">The judge pick wins automatically; the TUI still allows an override.</span>
           </li>
           <li class="stage">
             <span class="stage-num">09</span>
@@ -340,8 +340,8 @@ melodias</code></pre>
             </div>
             <figcaption>
               <span class="shot-tag">Review</span>
-              The judge preselects a pair. <code>1-9</code> overrides it, <code>Enter</code>
-              continues.
+              Headless runs take the pick automatically. In the TUI,
+              <code>1-9</code> overrides it and <code>Enter</code> continues.
             </figcaption>
           </figure>
 
@@ -426,7 +426,7 @@ melodias</code></pre>
           <div>
             <h3 class="mini-head">Requirements</h3>
             <ul class="chips">
-              <li>Rust 1.88+</li>
+              <li>Rust 1.90+</li>
               <li>yt-dlp</li>
               <li>ffmpeg + ffprobe</li>
               <li>llama.cpp</li>
