@@ -815,6 +815,61 @@ h1 .gold { color: var(--ivory); }
 
 .demo-player p { margin: 12px 0 0; padding: 0; }
 
+.demo-player p a {
+  color: var(--ivory);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.tracklist {
+  margin-top: 12px;
+  padding: 32px;
+  background: var(--graphite);
+  border: 0;
+  border-radius: 12px;
+}
+
+.tracklist ul {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.tracklist li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 14px;
+}
+
+.tracklist li:last-child { border-bottom: 0; }
+
+.tracklist li a {
+  color: var(--ivory);
+  text-decoration: none;
+}
+
+.tracklist li a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.tracklist li span {
+  flex-shrink: 0;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  color: var(--ash);
+}
+
+.tracklist p { margin: 12px 0 0; font-size: 14px; }
+
+.tracklist p a {
+  color: var(--ivory);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .demo-player audio,
 .demo-player video {
   display: block;
@@ -966,7 +1021,7 @@ td code {
 }
 
 .footer-inner p {
-  margin: 0 0 8px;
+  margin: 0 0 16px;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -976,18 +1031,26 @@ td code {
 
 .footer-inner strong { color: var(--ivory); font-weight: 500; }
 
-.footer a {
-  color: var(--ivory);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.social {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.credit {
-  margin-top: 14px !important;
-  font-size: 12px !important;
-  font-weight: 400 !important;
-  color: var(--ash) !important;
+.social a {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--ivory);
+  border: 1px solid var(--mist);
+  border-radius: 50%;
+  text-decoration: none;
 }
+
+.social a:hover { background: var(--obsidian); }
 
 /* ---------- to top ---------- */
 
