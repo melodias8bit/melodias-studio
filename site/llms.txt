@@ -1,0 +1,63 @@
+# melodias-studio
+
+> A Rust TUI and CLI that turns a source URL and a vibe into an 8-bit still, an original instrumental chiptune, a 1080p video and the YouTube copy, using local models.
+
+melodias-studio runs an eleven-stage pipeline on your own GPU box: llama.cpp writes the prompt, stable-diffusion.cpp draws the still, audio.cpp composes an original instrumental chiptune, Remotion cuts the 1080p video and the run leaves the YouTube copy ready to paste. No arguments opens the TUI; a URL plus a vibe runs the same pipeline headless. The reference audio only conditions timbre: every track is new material.
+
+- Project page: https://melodias8bit.github.io/melodias-studio/
+- Repository: https://github.com/melodias8bit/melodias-studio
+- License: MIT
+
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/melodias8bit/melodias-studio/main/install.sh | bash
+```
+
+The installer verifies every prerequisite (Rust 1.90+, yt-dlp, ffmpeg, ffprobe, ssh), clones the repository, builds the release binary and installs it into `~/.local/bin`. Manual path: clone the repository and run `make install`.
+
+Requires three local HTTP services (llama.cpp, stable-diffusion.cpp, audio.cpp) pointed at your GPU box. The cloud judge is optional and needs `OPENCODE_API_KEY` or `OPENROUTER_API_KEY`; without a key the run pauses for a manual pick in the TUI and takes the best-scored default headless.
+
+## Quick start
+
+```bash
+melodias                                    # TUI
+melodias '<url>' '<vibe>'                   # headless, e.g. 'epic 8-bit orchestral finale'
+```
+
+## Pipeline
+
+Eleven stages in fixed order: image prompt, prepare image, image pool, download, reference, upload, audio drafts, review, final take, master + save, video. Before the review, the deterministic `score-v1` rubric checks both sides and a retry loop regenerates only the side that missed (fixed patch table, never the same patch twice, pool capped at nine candidates per side). A run that misses the targets after the loop is `accepted_by_limit`, not a failure.
+
+- Score targets: 80 total (60% technical + 40% editorial), 85 technical, 70 editorial
+- Track: 210 s by default, faded and normalized to -15 LUFS
+- Still: 1280x720, seed and prompts stored for replay
+- Video: 1920x1080 via Remotion, or the explicit ffmpeg fast path with `VIDEO_RENDERER=ffmpeg`
+
+## What a run leaves behind
+
+One folder per run with the still, the mastered track, the 1080p video, the YouTube title/description/hashtags, plus `meta.json` (seeds, prompts, scores, verdict), the candidate pools and the `work/` intermediates. The SQLite history records outcomes, findings and applied patches.
+
+## After the run
+
+- `make image DIR=output/<slug>`: regenerate the thumbnail from the stored prompt, seed and references
+- `make judge DIR=output/<slug>`: review a finished run with the cloud judge
+- `make score DIR=output/<slug>`: apply the score offline, no GPU needed
+- `make youtube DIR=output/<slug>`: rebuild the upload copy, offline or with `--opencode`
+- `make render DIR=output/<slug>`: re-render the video with Remotion
+- `make video DIR=output/<slug>`: cut the video with the ffmpeg fast path
+- `make history`: query the local SQLite history
+- `make dashboard`: serve read-only charts on `127.0.0.1:7373`
+- `make backfill`: score older runs in `output/` into the history database
+- `make refs ARGS=...`: fetch, import or generate the optional reference image library
+
+## Docs
+
+- Setup (services, install, deployment): https://github.com/melodias8bit/melodias-studio/blob/main/docs/setup.md
+- Usage (TUI, headless, review, judge, score, retry loop): https://github.com/melodias8bit/melodias-studio/blob/main/docs/usage.md
+- Configuration (every variable, key and lifecycle command): https://github.com/melodias8bit/melodias-studio/blob/main/docs/configuration.md
+- Video (Remotion and ffmpeg renderers, overlays, particles): https://github.com/melodias8bit/melodias-studio/blob/main/docs/video.md
+- Architecture map: https://github.com/melodias8bit/melodias-studio/blob/main/docs/architecture/arquitectura.html
+- RFCs (review, deterministic score, chiptune composer): https://github.com/melodias8bit/melodias-studio/blob/main/docs/rfcs/README.md
+- Demo media runbook: https://github.com/melodias8bit/melodias-studio/blob/main/docs/runbooks/site-demo.md
+- Contributing: https://github.com/melodias8bit/melodias-studio/blob/main/CONTRIBUTING.md
