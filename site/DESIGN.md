@@ -163,3 +163,12 @@ Full-bleed dark canvas throughout. Hero is 100vw full-bleed photographic with ce
 - **Brex** — Dark-mode fintech aesthetic with comparable flat card elevation and confident intermediate-weight typography
 - **Linear** — Same whisper-weight typography philosophy and dark monochrome canvas with a single chromatic action color
 - **Stripe** — Shared approach to generous spacing, intermediate-weight display type, and letting one accent color carry the brand
+
+## Page structure (novu-inspired)
+
+Above the Mercury system sits a product-page structure borrowed from novu.co:
+
+- Sticky top bar with section links and a GitHub star button (live count, graceful fallback).
+- Centered hero: badge pill, display headline, install command with copy button, stat row, and one ambient Three.js particle wave behind the copy (see the web3d skill; CDN import, no build step, pauses off screen).
+- Engine strip naming the stack, run-mode tabs (TUI screenshot vs headless command), an eleven-step horizontal stepper, deliverable cards, score panels, gallery, real-run demo with channel tracklist, requirements plus installer, command table, FAQ accordion, closing band, and a three-column footer.
+- One cobalt action per view (hero install, closing band repeats the same action). No emojis, no external player libraries, native audio and video elements.

@@ -6,7 +6,7 @@
   <title>melodias-studio: one vibe in, a chiptune and a video out</title>
   <meta name="description" content="A Rust TUI and CLI that turns a reference URL and a vibe into an 8-bit thumbnail, an original instrumental chiptune, a 1080p video and the YouTube copy, using local models.">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#060912">
+  <meta name="theme-color" content="#171721">
   <link rel="canonical" href="https://melodias8bit.github.io/melodias-studio/">
 
   <meta property="og:type" content="website">
@@ -16,21 +16,21 @@
   <meta property="og:image" content="https://melodias8bit.github.io/melodias-studio/assets/img/banner.png">
   <meta name="twitter:card" content="summary_large_image">
 
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23060912'/%3E%3Cpath d='M6 12V4l6-1v7' fill='none' stroke='%23ffc857' stroke-width='2'/%3E%3Ccircle cx='4.5' cy='12' r='1.5' fill='%23ffc857'/%3E%3Ccircle cx='10.5' cy='10' r='1.5' fill='%23ffc857'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23171721'/%3E%3Cpath d='M6 12V4l6-1v7' fill='none' stroke='%23ededf3' stroke-width='2'/%3E%3Ccircle cx='4.5' cy='12' r='1.5' fill='%23ededf3'/%3E%3Ccircle cx='10.5' cy='10' r='1.5' fill='%235266eb'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/main.css">
+  <script type="importmap">
+    {"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}
+  </script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
   <div class="bg" aria-hidden="true">
     <video class="bg-video" src="assets/video/birds.mp4" muted loop playsinline autoplay preload="metadata"></video>
-    <div class="bg-grid"></div>
-    <div class="bg-glow bg-glow-a"></div>
-    <div class="bg-glow bg-glow-b"></div>
-    <div class="scanlines"></div>
   </div>
 
   <header class="topbar">
@@ -39,27 +39,27 @@
       <span>melodias<span class="brand-dim">-studio</span></span>
     </a>
     <nav class="topnav" aria-label="Sections">
-      <a href="#outputs">Outputs</a>
+      <a href="#run">Product</a>
       <a href="#pipeline">Pipeline</a>
-      <a href="#score">Score</a>
-      <a href="#gallery">In action</a>
       <a href="#demo">Demo</a>
+      <a href="#faq">FAQ</a>
       <a href="#install">Install</a>
-      <a class="topnav-source" href="https://github.com/melodias8bit/melodias-studio">Source</a>
+      <a class="topnav-source" href="https://github.com/melodias8bit/melodias-studio" aria-label="Source on GitHub">&#9733; <span id="stars">Star</span></a>
     </nav>
   </header>
 
   <main id="main">
     <section class="hero" id="top">
+      <canvas id="hero-3d" class="hero-3d" aria-hidden="true"></canvas>
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <p class="kicker"><span class="dot" aria-hidden="true"></span>Rust TUI + CLI &middot; local models &middot; MIT</p>
-          <h1>One vibe in.<br><span class="gold">A song,<br>a still,<br>a video out.</span></h1>
+          <p class="badge">Open source &middot; MIT &middot; runs on your box</p>
+          <h1>One vibe in. A song, a still, a video out.</h1>
           <p class="lede">
-            <strong>melodias-studio</strong> runs an eleven-stage pipeline on your own GPU box:
-            llama.cpp writes the prompt, stable-diffusion.cpp draws the still, audio.cpp composes an
-            original instrumental chiptune, Remotion cuts the 1080p video and the run leaves
-            the YouTube copy ready to paste.
+            <strong>melodias-studio</strong> is the release pipeline for 8-bit music channels.
+            Drop in a reference URL and a vibe; it writes the prompt, draws the cover art,
+            composes an original instrumental chiptune, cuts the 1080p video and hands you
+            the YouTube copy. Eleven stages, one command, no editing timeline.
           </p>
 
           <div class="cta-row">
@@ -67,94 +67,136 @@
             <a class="btn btn-ghost" href="https://github.com/melodias8bit/melodias-studio">View source</a>
           </div>
 
-          <div class="hud" aria-label="At a glance">
-            <span>Rust <b>1.90+</b></span>
-            <span>Stages <b>11</b></span>
-            <span>Thumbnail <b>1280&times;720</b></span>
-            <span>Track <b>3:30</b></span>
-            <span>Video <b>1080p</b></span>
-          </div>
+          <figure class="rune hero-rune-full">
+            <figcaption>
+              <span>$ install</span>
+              <button class="copy" type="button" data-copy="quick-cmd">copy</button>
+            </figcaption>
+            <pre id="quick-cmd"><code>curl -fsSL https://raw.githubusercontent.com/melodias8bit/melodias-studio/main/install.sh | bash</code></pre>
+          </figure>
+
+          <dl class="stats" aria-label="At a glance">
+            <div><dt>Stages</dt><dd>11</dd></div>
+            <div><dt>Track</dt><dd>210 s</dd></div>
+            <div><dt>Video</dt><dd>1080p</dd></div>
+            <div><dt>Cloud needed</dt><dd>None</dd></div>
+          </dl>
         </div>
 
         <div class="hero-art">
           <figure class="hero-figure">
             <div class="hero-frame">
-              <img src="assets/img/banner.png" alt="Pixel-art Frieren at a retro computer, composing a thumbnail and a waveform" width="1774" height="887" fetchpriority="high">
+              <img src="assets/img/banner.png" alt="Pixel-art still from a finished run: a character composing at a retro computer" width="1774" height="887" fetchpriority="high">
             </div>
             <figcaption>A finished run: one still, one original track, one 1080p video, ready to ship.</figcaption>
           </figure>
-          <p class="hero-note">
-            <span class="aside-tag">note</span>
-            The reference conditions timbre, never the melody. Every track is new material.
-          </p>
         </div>
       </div>
+    </section>
 
-      <div class="wrap hero-rune">
-        <figure class="rune">
-          <figcaption>
-            <span>$ install</span>
-            <button class="copy" type="button" data-copy="quick-cmd">copy</button>
-          </figcaption>
-          <pre id="quick-cmd"><code>curl -fsSL https://raw.githubusercontent.com/melodias8bit/melodias-studio/main/install.sh | bash</code></pre>
-        </figure>
+    <section class="strip" aria-label="Built on">
+      <div class="wrap strip-inner">
+        <p>Built on the stack you already run</p>
+        <ul>
+          <li>llama.cpp</li>
+          <li>stable-diffusion.cpp</li>
+          <li>audio.cpp</li>
+          <li>Remotion</li>
+          <li>Rust</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="run">
+      <div class="wrap">
+        <header class="sec-head">
+          <span class="sec-index">01</span>
+          <h2>Two ways to run, same pipeline</h2>
+          <p>
+            Watch the eleven stages stream by in the TUI, or fire one headless command
+            from CI and collect the folder. The headless run takes the judge pick
+            automatically; the TUI lets you override any candidate.
+          </p>
+        </header>
+
+        <div class="tabs" role="tablist" aria-label="Run modes">
+          <button class="tab" role="tab" id="tab-tui" aria-selected="true" aria-controls="panel-tui">TUI</button>
+          <button class="tab" role="tab" id="tab-cli" aria-selected="false" aria-controls="panel-cli">Headless</button>
+        </div>
+
+        <div class="tab-panel" id="panel-tui" role="tabpanel" aria-labelledby="tab-tui" tabindex="0">
+          <figure class="shot wide">
+            <div class="shot-frame">
+              <img src="assets/img/tui.png" alt="melodias-studio TUI with the eleven stages, progress bar and live log" width="1600" height="1147" loading="lazy">
+            </div>
+            <figcaption>
+              <span class="shot-tag">TUI</span>
+              Eleven stages, live progress, and the prompt, seed and candidate paths in the log.
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="tab-panel" id="panel-cli" role="tabpanel" aria-labelledby="tab-cli" tabindex="0" hidden>
+          <figure class="rune">
+            <figcaption>
+              <span>$ headless run</span>
+              <button class="copy" type="button" data-copy="headless-cmd">copy</button>
+            </figcaption>
+            <pre id="headless-cmd"><code>MELODIAS_LOG=output/run.log melodias \
+  'https://www.youtube.com/watch?v=...' \
+  'epic 8-bit orchestral finale'</code></pre>
+          </figure>
+          <p class="small">
+            No arguments opens the TUI; the two arguments run the same pipeline headless
+            and take the judge suggestion. Config starts from
+            <code>config.example.toml</code> at
+            <code>$XDG_CONFIG_HOME/melodias-studio/config.toml</code>.
+          </p>
+        </div>
       </div>
     </section>
 
     <section class="section" id="outputs">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">01</span>
-          <h2>What a run leaves behind</h2>
+          <span class="sec-index">02</span>
+          <h2>One run, everything included</h2>
           <p>
-            The reference conditions timbre, not content. The still and the track are new
-            material generated from the vibe, and every run writes a folder you can ship,
-            re-render or inspect later.
+            A finished run is a folder you can ship, re-render or inspect later.
+            The reference conditions timbre, not content: the still and the track
+            are new material generated from the vibe.
           </p>
         </header>
 
-        <div class="split">
-          <ul class="deliver" aria-label="What a run leaves behind">
-            <li><span>Still</span>An 8-bit cover, 1280x720, with its seed and prompt stored for replay.</li>
-            <li><span>Track</span>An original instrumental, about three and a half minutes, mastered for upload.</li>
-            <li><span>Video</span>A 1080p cut with the waveform, particles and channel branding.</li>
-            <li><span>YouTube copy</span>Title, description and hashtags, ready to paste.</li>
-          </ul>
-
-          <div class="card-grid">
-            <article class="card">
-              <h3>Still</h3>
-              <p>
-                llama.cpp turns the vibe into an English prompt with the pixel style
-                pinned; stable-diffusion.cpp returns three candidates. The seed and steps travel with
-                the image, so a patched retry can be replayed.
-              </p>
-            </article>
-            <article class="card">
-              <h3>Track</h3>
-              <p>
-                An original instrumental, 210 seconds by default. audio.cpp samples the
-                source for timbre only, writes its own intro and outro, and the master is
-                faded and normalized to -15 LUFS.
-              </p>
-            </article>
-            <article class="card">
-              <h3>Video</h3>
-              <p>
-                The chosen still with a slow zoom, the waveform, pixel particles and the
-                channel branding. Remotion by default; <code>VIDEO_RENDERER=ffmpeg</code> is
-                the explicit fast path.
-              </p>
-            </article>
-            <article class="card">
-              <h3>YouTube copy</h3>
-              <p>
-                Title, two opening paragraphs and 6 to 8 hashtags, written while the LLM is
-                already loaded for the prompt. Rebuild it offline with the static template
-                or with <code>--opencode</code>.
-              </p>
-            </article>
-          </div>
+        <div class="card-grid four">
+          <article class="card">
+            <h3>Still</h3>
+            <p>
+              The vibe becomes an English prompt with the pixel style pinned.
+              The seed and steps travel with the image, so a patched retry replays exactly.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Track</h3>
+            <p>
+              An original instrumental, 210 seconds by default. The source is sampled
+              for timbre only, then the master is faded and normalized to -15 LUFS.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Video</h3>
+            <p>
+              The chosen still with a slow zoom, the waveform, pixel particles and
+              channel branding. Remotion by default; the ffmpeg path is explicit and fast.
+            </p>
+          </article>
+          <article class="card">
+            <h3>YouTube copy</h3>
+            <p>
+              Title, two opening paragraphs and hashtags, written while the language
+              model is already loaded. Rebuild it offline or with the cloud pass.
+            </p>
+          </article>
         </div>
 
         <p class="aside">
@@ -166,10 +208,10 @@
       </div>
     </section>
 
-    <section class="section alt" id="pipeline">
+    <section class="section" id="pipeline">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">02</span>
+          <span class="sec-index">03</span>
           <h2>Eleven stages, one take</h2>
           <p>
             The order is not arbitrary. The image is the most fragile stage, so it runs
@@ -177,67 +219,23 @@
           </p>
         </header>
 
-        <ol class="stages">
-          <li class="stage">
-            <span class="stage-num">01</span>
-            <span class="stage-name">Image prompt</span>
-            <span class="stage-desc">llama.cpp rewrites the vibe as an English prompt.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">02</span>
-            <span class="stage-name">Prepare image</span>
-            <span class="stage-desc">Reference images rotate in; the seed and steps are fixed.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">03</span>
-            <span class="stage-name">Image pool</span>
-            <span class="stage-desc">stable-diffusion.cpp draws three 1280x720 candidates.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">04</span>
-            <span class="stage-name">Download</span>
-            <span class="stage-desc">yt-dlp pulls the source you linked.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">05</span>
-            <span class="stage-name">Reference</span>
-            <span class="stage-desc">ffmpeg keeps the 60 s with the most energy.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">06</span>
-            <span class="stage-name">Upload</span>
-            <span class="stage-desc">The window travels to the GPU box over scp.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">07</span>
-            <span class="stage-name">Audio drafts</span>
-            <span class="stage-desc">audio.cpp returns three 60 s takes.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">08</span>
-            <span class="stage-name">Review</span>
-            <span class="stage-desc">The judge pick wins automatically; the TUI still allows an override.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">09</span>
-            <span class="stage-name">Final take</span>
-            <span class="stage-desc">The chosen seed drives the full 210 s at 32 steps.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">10</span>
-            <span class="stage-name">Master + save</span>
-            <span class="stage-desc">Fade, loudness, meta.json and the history row.</span>
-          </li>
-          <li class="stage">
-            <span class="stage-num">11</span>
-            <span class="stage-name">Video</span>
-            <span class="stage-desc">Remotion renders 1080p with overlays and branding.</span>
-          </li>
+        <ol class="stepper">
+          <li><span class="step-num">01</span><span class="step-name">Image prompt</span><span class="step-desc">llama.cpp rewrites the vibe as an English prompt.</span></li>
+          <li><span class="step-num">02</span><span class="step-name">Prepare image</span><span class="step-desc">Reference images rotate in; seed and steps are fixed.</span></li>
+          <li><span class="step-num">03</span><span class="step-name">Image pool</span><span class="step-desc">stable-diffusion.cpp draws three 1280x720 candidates.</span></li>
+          <li><span class="step-num">04</span><span class="step-name">Download</span><span class="step-desc">yt-dlp pulls the source you linked.</span></li>
+          <li><span class="step-num">05</span><span class="step-name">Reference</span><span class="step-desc">ffmpeg keeps the 60 s with the most energy.</span></li>
+          <li><span class="step-num">06</span><span class="step-name">Upload</span><span class="step-desc">The window travels to the GPU box over scp.</span></li>
+          <li><span class="step-num">07</span><span class="step-name">Audio drafts</span><span class="step-desc">audio.cpp returns three 60 s takes.</span></li>
+          <li><span class="step-num">08</span><span class="step-name">Review</span><span class="step-desc">The judge pick wins automatically; the TUI still allows an override.</span></li>
+          <li><span class="step-num">09</span><span class="step-name">Final take</span><span class="step-desc">The chosen seed drives the full 210 s at 32 steps.</span></li>
+          <li><span class="step-num">10</span><span class="step-name">Master + save</span><span class="step-desc">Fade, loudness, meta.json and the history row.</span></li>
+          <li><span class="step-num">11</span><span class="step-name">Video</span><span class="step-desc">Remotion renders 1080p with overlays and branding.</span></li>
         </ol>
 
         <p class="aside">
           <span class="aside-tag">loop</span>
-          Before the review, <code>score-v1</code> checks both sides and the retry loop
+          Before the review, the deterministic score checks both sides and the retry loop
           regenerates only the side that missed, with a fixed patch table. A patch code is
           never applied twice and the pool stops growing at nine candidates per side.
         </p>
@@ -247,7 +245,7 @@
     <section class="section" id="score">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">03</span>
+          <span class="sec-index">04</span>
           <h2>Scored, not guessed</h2>
           <p>
             A run is not accepted because it looks fine. The deterministic rubric measures
@@ -266,17 +264,15 @@
             </ul>
             <p>
               Written to <code>work/score.json</code> and refreshable offline with
-              <code>melodias score</code>. The text check uses <code>tesseract</code>; without
-              it that metric is skipped and the rest is renormalized.
+              <code>melodias score</code>.
             </p>
           </article>
 
           <article class="panel">
             <h3>Editorial read</h3>
             <p>
-              One multimodal call to <code>gemini-4-argon</code> through OpenCode Go sees
-              768 px JPEGs, hears 15 s MP3s and receives the deterministic findings. It
-              returns a verdict and up to five <code>must_fix</code> codes.
+              One multimodal call sees 768 px JPEGs, hears 15 s MP3s and receives the
+              deterministic findings. It returns a verdict and up to five codes to fix.
             </p>
             <p>
               No key means no call: the judge is skipped and the manual review still works.
@@ -300,19 +296,13 @@
             </p>
           </article>
         </div>
-
-        <p class="aside">
-          <span class="aside-tag">budget</span>
-          Up to two image rounds while stable-diffusion.cpp is up and one audio round when it lost
-          eight points or more, independently of the image result.
-        </p>
       </div>
     </section>
 
-    <section class="section alt" id="gallery">
+    <section class="section" id="gallery">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">04</span>
+          <span class="sec-index">05</span>
           <h2>In action</h2>
           <p>
             Real screenshots from a running install: the TUI while the pools build, the
@@ -323,17 +313,6 @@
         <div class="gallery">
           <figure class="shot wide">
             <div class="shot-frame">
-              <img src="assets/img/tui.png" alt="melodias-studio TUI with the eleven stages, progress bar and live log" width="1600" height="1147" loading="lazy">
-            </div>
-            <figcaption>
-              <span class="shot-tag">TUI</span>
-              Eleven stages, live progress, and the prompt, seed and candidate paths in the
-              log.
-            </figcaption>
-          </figure>
-
-          <figure class="shot">
-            <div class="shot-frame">
               <img src="assets/img/tui-review.png" alt="Review screen with image and audio candidates" width="1600" height="1147" loading="lazy">
             </div>
             <figcaption>
@@ -343,7 +322,7 @@
             </figcaption>
           </figure>
 
-          <figure class="shot wide">
+          <figure class="shot">
             <div class="shot-frame">
               <img src="assets/img/dashboard-home.png" alt="History dashboard with score chart, findings and run table" width="1441" height="1132" loading="lazy">
             </div>
@@ -353,7 +332,7 @@
             </figcaption>
           </figure>
 
-          <figure class="shot tall">
+          <figure class="shot">
             <div class="shot-frame">
               <img src="assets/img/dashboard-detail.png" alt="Run detail with score breakdown, findings and applied patches" width="1441" height="2000" loading="lazy">
             </div>
@@ -370,7 +349,7 @@
     <section class="section" id="demo">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">05</span>
+          <span class="sec-index">06</span>
           <h2>From a real run</h2>
           <p>
             One finished folder, cut to 30 seconds for the web. The still is the
@@ -424,11 +403,12 @@
     <section class="section" id="install">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">06</span>
-          <h2>Install</h2>
+          <span class="sec-index">07</span>
+          <h2>Install in one line</h2>
           <p>
-            Generation happens on your own box. Bring the three HTTP services, point the
-            config at them, and the pipeline does the rest.
+            The installer verifies every prerequisite, builds the release binary and
+            puts it on your PATH. No containers, no lock-in: it is a shell script
+            you can read first.
           </p>
         </header>
 
@@ -446,14 +426,14 @@
             </ul>
             <p class="small">
               The services can run on this machine or on another host over SSH. The
-              defaults describe a single 24 GB P40, but nothing in the pipeline requires
+              defaults describe a single 24 GB card, but nothing in the pipeline requires
               that card. Local mode is <code>ssh_host = ""</code> with the lifecycle
               commands empty.
             </p>
             <p class="small">
               The judge is optional and needs <code>OPENCODE_API_KEY</code> or
               <code>OPENROUTER_API_KEY</code>. Without a key the run pauses for a manual
-              pick instead.
+              pick in the TUI and takes the best-scored default headless.
             </p>
           </div>
 
@@ -467,38 +447,18 @@
             </figure>
 
             <p class="small">
-              The installer verifies every prerequisite (Rust, yt-dlp, ffmpeg,
-              ffprobe, ssh), clones the repository, builds the release binary
-              and installs it into <code>~/.local/bin</code>. Prefer the manual
-              path? <code>git clone</code> the repository and run
+              Prefer the manual path? <code>git clone</code> the repository and run
               <code>make install</code> instead.
-            </p>
-
-            <figure class="rune">
-              <figcaption>
-                <span>$ headless run</span>
-                <button class="copy" type="button" data-copy="headless-cmd">copy</button>
-              </figcaption>
-              <pre id="headless-cmd"><code>MELODIAS_LOG=output/run.log melodias \
-  'https://www.youtube.com/watch?v=...' \
-  'epic 8-bit artcore &amp; orchestra'</code></pre>
-            </figure>
-
-            <p class="small">
-              No arguments opens the TUI; the two arguments run the same pipeline headless
-              and take the judge suggestion. Config starts from
-              <code>config.example.toml</code> at
-              <code>$XDG_CONFIG_HOME/melodias-studio/config.toml</code>.
             </p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section alt" id="commands">
+    <section class="section" id="commands">
       <div class="wrap">
         <header class="sec-head">
-          <span class="sec-index">07</span>
+          <span class="sec-index">08</span>
           <h2>After the run</h2>
           <p>
             A finished folder is not frozen. Rework one piece without paying for the whole
@@ -514,11 +474,12 @@
             <tbody>
               <tr><td><code>make image DIR=&hellip;</code></td><td>Regenerate the thumbnail from the stored prompt, seed and references.</td></tr>
               <tr><td><code>make judge DIR=&hellip;</code></td><td>Review a finished run with the cloud judge; prints the verdict.</td></tr>
-              <tr><td><code>make score DIR=&hellip;</code></td><td>Apply <code>score-v1</code> offline and write <code>work/score.json</code>.</td></tr>
+              <tr><td><code>make score DIR=&hellip;</code></td><td>Apply the score offline and write <code>work/score.json</code>.</td></tr>
               <tr><td><code>make youtube DIR=&hellip;</code></td><td>Rebuild the upload copy from the template, or with <code>--opencode</code>.</td></tr>
               <tr><td><code>make render DIR=&hellip;</code></td><td>Re-render the video with Remotion, effects included.</td></tr>
               <tr><td><code>make video DIR=&hellip;</code></td><td>Cut the video with the ffmpeg fast path, no Remotion.</td></tr>
               <tr><td><code>make history</code></td><td>Query the local SQLite history, findings, costs and outcomes.</td></tr>
+              <tr><td><code>make export CSV=&hellip; OUT=&hellip;</code></td><td>Render the dashboard overview as static files, no server needed.</td></tr>
               <tr><td><code>make dashboard</code></td><td>Serve the read-only charts on <code>127.0.0.1:7373</code>.</td></tr>
               <tr><td><code>make backfill</code></td><td>Score older runs in <code>output/</code> into the history database.</td></tr>
               <tr><td><code>make refs ARGS=&hellip;</code></td><td>Fetch, import or generate the optional reference library.</td></tr>
@@ -528,27 +489,99 @@
       </div>
     </section>
 
+    <section class="section" id="faq">
+      <div class="wrap">
+        <header class="sec-head">
+          <span class="sec-index">09</span>
+          <h2>Questions, answered</h2>
+          <p>The short version. The repository is the long version.</p>
+        </header>
+
+        <div class="faq">
+          <details>
+            <summary>Do I need a GPU?</summary>
+            <p>Generation happens on your own box behind three HTTP services. The defaults describe a single 24 GB card, reached over SSH, but local mode works too. Scoring, judging replays, exports and the dashboard need no GPU at all.</p>
+          </details>
+          <details>
+            <summary>Is the music original?</summary>
+            <p>Yes. Every track is an original instrumental; the reference audio only conditions timbre. The run stores prompts and seeds, so any piece can be replayed or audited later.</p>
+          </details>
+          <details>
+            <summary>What if I have no judge key?</summary>
+            <p>Nothing breaks. The TUI pauses so you can pick the candidates yourself, and headless runs take the best-scored default. A failed judge call is one log line, never an aborted run.</p>
+          </details>
+          <details>
+            <summary>Can I rework a finished run?</summary>
+            <p>Yes, per piece: regenerate the still, re-run the judge or the score, rebuild the YouTube copy, or re-render the video, all from the stored folder. Nothing requires paying for the full pipeline twice.</p>
+          </details>
+          <details>
+            <summary>What do the scores mean?</summary>
+            <p>60 percent deterministic rubric plus 40 percent editorial read. The gates are 80 total, 85 technical and 70 editorial. A run that misses after the retry loop is recorded as accepted by limit, with the reason stored in history.</p>
+          </details>
+          <details>
+            <summary>Where does my data live?</summary>
+            <p>On your machine. Runs stay in output/, history in a local SQLite file, config in your home directory. The only network calls are the ones you configure: your GPU host and, optionally, the judge provider.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="wrap cta-inner">
+        <h2>Ship your first run tonight.</h2>
+        <p>One installer, one command, one finished folder.</p>
+        <a class="btn" href="#install">Install it</a>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
     <div class="wrap footer-inner">
-      <p>
-        <strong>melodias-studio.</strong> MIT licensed. Built with llama.cpp,
-        stable-diffusion.cpp, audio.cpp and Remotion.
-      </p>
-      <div class="social">
-        <a href="https://github.com/melodias8bit/melodias-studio" aria-label="Repository">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6 3 12l5 6"/><path d="M16 6l5 6-5 6"/></svg>
-        </a>
-        <a href="https://github.com/melodias8bit/melodias-studio/issues" aria-label="Issues">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><circle cx="12" cy="16.5" r="0.5" fill="currentColor"/></svg>
-        </a>
-        <a href="https://github.com/melodias8bit/melodias-studio/blob/main/CONTRIBUTING.md" aria-label="Contributing">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5c3-1 6-1 8 2 2-3 5-3 8-2v14c-3-1-6-1-8 2-2-3-5-3-8-2z"/><path d="M12 7v14"/></svg>
-        </a>
-        <a href="llms.txt" aria-label="llms.txt">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/></svg>
-        </a>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <h3>Product</h3>
+          <a href="#run">Run</a>
+          <a href="#outputs">Outputs</a>
+          <a href="#pipeline">Pipeline</a>
+          <a href="#score">Score</a>
+          <a href="#demo">Demo</a>
+        </div>
+        <div class="footer-col">
+          <h3>Resources</h3>
+          <a href="https://github.com/melodias8bit/melodias-studio/blob/main/docs/setup.md">Setup</a>
+          <a href="https://github.com/melodias8bit/melodias-studio/blob/main/docs/usage.md">Usage</a>
+          <a href="https://github.com/melodias8bit/melodias-studio/blob/main/docs/configuration.md">Configuration</a>
+          <a href="https://github.com/melodias8bit/melodias-studio/blob/main/docs/video.md">Video</a>
+          <a href="https://github.com/melodias8bit/melodias-studio/blob/main/docs/architecture/arquitectura.html">Architecture</a>
+        </div>
+        <div class="footer-col">
+          <h3>Project</h3>
+          <a href="https://github.com/melodias8bit/melodias-studio">Repository</a>
+          <a href="https://github.com/melodias8bit/melodias-studio/issues">Issues</a>
+          <a href="https://github.com/melodias8bit/melodias-studio/blob/main/CONTRIBUTING.md">Contributing</a>
+          <a href="https://www.youtube.com/@melodias8bit">YouTube channel</a>
+          <a href="llms.txt">llms.txt</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>
+          <strong>melodias-studio.</strong> MIT licensed. Built with llama.cpp,
+          stable-diffusion.cpp, audio.cpp and Remotion.
+        </p>
+        <div class="social">
+          <a href="https://github.com/melodias8bit/melodias-studio" aria-label="Repository">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6 3 12l5 6"/><path d="M16 6l5 6-5 6"/></svg>
+          </a>
+          <a href="https://github.com/melodias8bit/melodias-studio/issues" aria-label="Issues">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><circle cx="12" cy="16.5" r="0.5" fill="currentColor"/></svg>
+          </a>
+          <a href="https://github.com/melodias8bit/melodias-studio/blob/main/CONTRIBUTING.md" aria-label="Contributing">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5c3-1 6-1 8 2 2-3 5-3 8-2v14c-3-1-6-1-8 2-2-3-5-3-8-2z"/><path d="M12 7v14"/></svg>
+          </a>
+          <a href="llms.txt" aria-label="llms.txt">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/></svg>
+          </a>
+        </div>
       </div>
     </div>
   </footer>
