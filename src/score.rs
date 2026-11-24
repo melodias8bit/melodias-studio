@@ -106,6 +106,13 @@ pub struct AudioMetrics {
     /// Share of 30 s windows with five or more distinct chroma patterns.
     /// A track that turns over motifs scores here even if one section stalls.
     pub variety: f64,
+    /// Share of total energy below 250 Hz. A chiptune lead lives in the mids;
+    /// when the bass holds almost everything the mix is mud, not 8-bit.
+    pub low_share: f64,
+    /// First-second RMS minus the middle RMS, in dB. A real intro ramps up,
+    /// so the opening second sits well below the middle; a hot start is a
+    /// pop, a glitch take, or no ramp at all.
+    pub attack_db: f64,
 }
 
 /// One line of the rubric: the code, the measured value and the points it earned.
@@ -656,6 +663,8 @@ pub fn audio_metrics(path: &Path) -> Result<AudioMetrics> {
     let full = overall_rms(path, "anull")?;
     let high = overall_rms(path, "highpass=f=5000")?;
     let high_share = 10f64.powf((high - full) / 10.0);
+    let low = overall_rms(path, "lowpass=f=250")?;
+    let low_share = 10f64.powf((low - full) / 10.0);
 
     let silence_text = stderr_of(&[
         "-hide_banner".into(),
@@ -678,6 +687,7 @@ pub fn audio_metrics(path: &Path) -> Result<AudioMetrics> {
     let mid_len = 20.0f64.min(duration - mid_start);
     let intro = segment_rms(path, 0.0, intro_end)?;
     let mid = segment_rms(path, mid_start, mid_len)?;
+    let attack = segment_rms(path, 0.0, 1.0)?;
 
     Ok(AudioMetrics {
         duration,
@@ -690,6 +700,8 @@ pub fn audio_metrics(path: &Path) -> Result<AudioMetrics> {
         leading,
         repeat_sec,
         variety,
+        low_share,
+        attack_db: attack - mid,
     })
 }
 
@@ -1125,6 +1137,12 @@ fn gates(image: &ImageMetrics, audio: &AudioMetrics, target: f64) -> Vec<Finding
 /// soft score counts: blank frames and clear text never reach the ranking.
 /// One or two OCR words stay soft (IMG_TEXT) because illustrated art invents
 /// junk tokens; three or more is a hard fail.
+///
+/// Palette distance stays soft (IMG_PALETTE) on purpose: distance to a fixed
+/// retro palette and coherence to the dominant colors both rank a smooth gray
+/// gradient above the shipped thumbnails, so any threshold that passes the
+/// runs passes the junk too. Unique colors plus the editorial style axis
+/// stay the counterweights.
 pub fn image_gates(image: &ImageMetrics) -> Vec<Finding> {
     let mut findings = Vec::new();
     let expected = 16.0 / 9.0;
@@ -1166,8 +1184,22 @@ pub fn image_gates(image: &ImageMetrics) -> Vec<Finding> {
 }
 
 /// Hard gates for one track. Duration and clipping reject the candidate;
-/// a leading silence over 1.5 s rejects it too. Loudness, build and timbre
-/// stay soft: they point in the right direction but do not fail a take.
+/// a leading silence over 1.5 s rejects it too. GATE_BAND rejects bass mud
+/// the highs metric cannot see (energy below 250 Hz burying the chiptune
+/// mids), and GATE_RAMP rejects a hot start the 20 s build mean masks (a
+/// pop or glitch take opening louder than its own middle). Loudness, build
+/// and timbre otherwise stay soft: they point in the right direction but do
+/// not fail a take.
+///
+/// Deliberately unmeasured: stable tempo (autocorrelated pulse halves agree
+/// on click tracks but read near noise floor on the shipped emotional runs,
+/// so any threshold gates good tracks first), vocals (square-wave leads
+/// share the vocal formant bands, so no deterministic split exists without
+/// source separation; the negative prompt and the judge stay the
+/// counterweights), outro shape (a sudden pre-fade drop is usually an
+/// intentional genre drop, and body silence is already AUD_SILENCE), and a
+/// reference-relative band match (the reference is optional and the absolute
+/// mud gate covers the defect).
 pub fn audio_gates(audio: &AudioMetrics, target: f64) -> Vec<Finding> {
     let mut findings = Vec::new();
     if (audio.duration - target).abs() > 2.0 {
@@ -1195,6 +1227,30 @@ pub fn audio_gates(audio: &AudioMetrics, target: f64) -> Vec<Finding> {
             audio.leading,
             1.5,
             format!("{:.2} s of silence at the start", audio.leading),
+        ));
+    }
+    if audio.low_share > 0.85 {
+        findings.push(gate(
+            "GATE_BAND",
+            "low_share",
+            audio.low_share,
+            0.85,
+            format!(
+                "{:.0}% of the energy sits below 250 Hz: bass mud, no chiptune body",
+                audio.low_share * 100.0
+            ),
+        ));
+    }
+    if audio.attack_db > 3.0 {
+        findings.push(gate(
+            "GATE_RAMP",
+            "attack_db",
+            audio.attack_db,
+            3.0,
+            format!(
+                "the first second is {:.1} dB hotter than the middle: no intro ramp",
+                audio.attack_db
+            ),
         ));
     }
     findings

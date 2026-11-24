@@ -118,6 +118,8 @@ Candidates that fail a gate are rejected before scoring, not penalized:
 - `GATE_DURATION`: audio length within 2 s of `DURATION_SEC` (drafts use `AUDIO_DRAFT_SEC`).
 - `GATE_PEAK`: true peak above 0 dBFS.
 - `GATE_LEADING`: over 1.5 s of silence at the start (the tail is excluded, the master fade is intentional).
+- `GATE_BAND`: over 85 % of the energy below 250 Hz (bass mud burying the chiptune mids; the highs stay soft under `AUD_HIGHS`).
+- `GATE_RAMP`: the first second louder than the middle by over 3 dB (a pop or glitch take opening with no intro ramp; starting at full energy stays soft under `AUD_BUILD`).
 - `GATE_DECODE`: `ffprobe` cannot read the file, or `ffmpeg` cannot decode the pixels.
 
 ### Editorial, 100 points
@@ -382,3 +384,4 @@ The editorial score is the weak part and the RFC does not hide it:
 9. **Editorial axes:** style 25, composition 25, eyes 20, retro 15, coherence 15. Fixed in `score-v1`; legacy verdicts without axes fall back to the single score.
 10. **Repeat:** `AUD_REPEAT` at 8 s full, 15 s zero, measured on drafts and masters; the rubric is `score-v2`. A stall the rubric cannot see becomes a lesson: code, patch, test, bump.
 11. **Variety:** `AUD_VARIETY` at 20 % zero, 60 % full, same decode as repeat plus a pure-Rust FFT; the rubric is `score-v3`. Turnover outranks stall length: the artcore stalls 26 s and still scores full variety, the finale stalls 18 s at 14 % dense and loses both.
+12. **Band and ramp gates:** `GATE_BAND` at 85 % low share and `GATE_RAMP` at +3 dB attack, both audio-only and pathology-scoped so the four shipped runs keep passing except the worst-timbre one. Palette distance, stable tempo, outro shape and vocals stay unmeasured: gray gradients outscore real thumbnails on every distance probe, shipped emotional runs read near the tempo noise floor, pre-fade drops are usually genre drops, and square leads share the vocal bands. No rubric bump: gates reject, they never move points.
