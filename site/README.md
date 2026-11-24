@@ -42,6 +42,14 @@ custom domain is added, update the canonical and Open Graph URLs in
   page picks them up on the next stage.
 - Copy: the stage list in the page mirrors `STAGES` in `src/pipeline.rs`; the
   targets in the commands table mirror the `Makefile`.
+- Tabs: the TUI panel shows `docs/assets/tui.png`, the headless panel the
+  `melodias '<url>' '<vibe>'` command. Keep both honest when the CLI changes.
+- FAQ: answers summarize `docs/setup.md`, `docs/usage.md` and
+  `docs/configuration.md`. Fix the docs first, then the answer.
+- Hero 3D: `site/assets/js/hero-3d.js` renders one Three.js particle wave from a
+  CDN import (no build step, no bundler). It pauses off screen and renders a
+  static frame with `prefers-reduced-motion`. Keep it to one canvas and no
+  scroll hijacking.
 - Theme: the page follows [DESIGN.md](DESIGN.md) (Mercury: onyx canvas,
   graphite cards, one cobalt action, Inter only, no shadows). Keep new styles
   inside that system.

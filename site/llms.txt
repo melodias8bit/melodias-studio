@@ -5,6 +5,7 @@
 melodias-studio runs an eleven-stage pipeline on your own GPU box: llama.cpp writes the prompt, stable-diffusion.cpp draws the still, audio.cpp composes an original instrumental chiptune, Remotion cuts the 1080p video and the run leaves the YouTube copy ready to paste. No arguments opens the TUI; a URL plus a vibe runs the same pipeline headless. The reference audio only conditions timbre: every track is new material.
 
 - Project page: https://melodias8bit.github.io/melodias-studio/
+  (demo: #demo, questions: #faq, install: #install)
 - Repository: https://github.com/melodias8bit/melodias-studio
 - YouTube channel: https://www.youtube.com/@melodias8bit
 - License: MIT
@@ -48,6 +49,7 @@ One folder per run with the still, the mastered track, the 1080p video, the YouT
 - `make render DIR=output/<slug>`: re-render the video with Remotion
 - `make video DIR=output/<slug>`: cut the video with the ffmpeg fast path
 - `make history`: query the local SQLite history
+- `make export CSV=<runs-csv> OUT=<dir>`: render the dashboard overview as static files, no server needed
 - `make dashboard`: serve read-only charts on `127.0.0.1:7373`
 - `make backfill`: score older runs in `output/` into the history database
 - `make refs ARGS=...`: fetch, import or generate the optional reference image library

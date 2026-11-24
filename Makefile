@@ -8,7 +8,7 @@ PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 BIN := target/release/melodias
 
-.PHONY: help run generate image judge score youtube history dashboard site render video backfill refs build check skills-check docs-check fmt test install uninstall deploy status log clean
+.PHONY: help run generate image judge score youtube history export dashboard site render video backfill refs build check skills-check docs-check fmt test install uninstall deploy status log clean
 
 help:
 	@printf '%s\n' \
@@ -22,6 +22,7 @@ help:
   '  make score DIR=output/<slug>         score a finished run, no GPU' \
   '  make youtube DIR=output/<slug>       YouTube copy for a finished run, no GPU' \
   '  make history [ARGS=findings]         read the local history database' \
+  '  make export CSV=... OUT=...          static dashboard overview, no server' \
   '  make dashboard                       serve the read-only dashboard on 127.0.0.1' \
   '  make site                            preview the project page on 127.0.0.1:4000' \
   '  make backfill [ARGS=--replace]       score the runs in output/ into the history DB' \
@@ -78,6 +79,11 @@ refs:
 
 history:
 	$(CARGO) run --release -- history $(ARGS)
+
+export:
+	@test -n "$(CSV)" || { echo 'missing CSV, for example: make export CSV=/tmp/runs.csv OUT=/tmp/overview'; exit 2; }
+	@test -n "$(OUT)" || { echo 'missing OUT=...'; exit 2; }
+	$(CARGO) run --release -- export "$(CSV)" "$(OUT)" $(ARGS)
 
 dashboard:
 	$(CARGO) run --release -- dashboard $(ARGS)

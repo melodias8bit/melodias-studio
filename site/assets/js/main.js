@@ -66,7 +66,9 @@
   var targets = $$(
     ".section .sec-head, .section .tree, .section .card, .section .stage, " +
     ".section .panel, .section .shot, .section .chips, .section .rune, " +
-    ".section .table-wrap, .section .doc, .section .aside"
+    ".section .table-wrap, .section .doc, .section .aside, .section .tab, " +
+    ".section .stepper, .section .faq, .section .cta-inner, .strip-inner, " +
+    ".footer-col"
   );
 
   if (reduced || !("IntersectionObserver" in window)) {
@@ -114,10 +116,58 @@
     });
   }
 
-  /* ---------- footer year ---------- */
+  /* ---------- run mode tabs ---------- */
 
-  var year = $("#year");
-  if (year) year.textContent = String(new Date().getFullYear());
+  var tabs = $$('.tabs .tab');
+  if (tabs.length > 0) {
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (other) {
+          var selected = other === tab;
+          other.setAttribute("aria-selected", selected ? "true" : "false");
+          var panel = document.getElementById(other.getAttribute("aria-controls"));
+          if (panel) panel.hidden = !selected;
+        });
+      });
+    });
+  }
+
+  /* ---------- GitHub stars ---------- */
+
+  var stars = $("#stars");
+  if (stars && "fetch" in window) {
+    fetch("https://api.github.com/repos/melodias8bit/melodias-studio")
+      .then(function (response) {
+        if (!response.ok) throw new Error("stars");
+        return response.json();
+      })
+      .then(function (data) {
+        if (data && typeof data.stargazers_count === "number") {
+          stars.textContent = "Star " + data.stargazers_count;
+        }
+      })
+      .catch(function () {});
+  }
+
+  /* ---------- hero 3D ---------- */
+
+  var heroCanvas = $("#hero-3d");
+  if (heroCanvas) {
+    var start3D = function () {
+      import("./hero-3d.js")
+        .then(function (module) {
+          try {
+            module.initHero3D(heroCanvas);
+          } catch (err) {}
+        })
+        .catch(function () {});
+    };
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(start3D);
+    } else {
+      start3D();
+    }
+  }
 
   /* ---------- ambient video ---------- */
 
