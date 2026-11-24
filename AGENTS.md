@@ -69,7 +69,7 @@ References and optional commands:
 
 ## Agent skills
 
-- Repo-owned skills live in `.agents/skills/`: `melodias-pipeline`, `melodias-render`, `melodias-config`, `melodias-testing`, `melodias-history` and `melodias-refs`. They encode the 11 stages, the Remotion/ffmpeg split, config precedence, the inline test layout, the history/dashboard rules and the reference library; update them when that behavior changes.
+- Repo-owned skills live in `.agents/skills/`: `melodias-pipeline`, `melodias-render`, `melodias-config`, `melodias-testing`, `melodias-history`, `melodias-refs` and `web3d`. They encode the 11 stages, the Remotion/ffmpeg split, config precedence, the inline test layout, the history/dashboard rules, the reference library and the WebGL patterns for the page and video; update them when that behavior changes.
 - `make skills-check` (also the last step of `make check`) validates every skill's frontmatter, the repository paths it cites, and the `make` targets and test names it mentions. Keep skills in English and without em dashes.
 - Registry skills (`rust-best-practices`, `rust-testing`, `ratatui-tui`, `ffmpeg`) are pinned by source commit in `skills-lock.json`. Refresh with `npx skills add <repo> -s <skill> -a opencode -y` and review the diff.
 - `ratatui-tui` targets 0.30 while the repo pins 0.29, and `rust-testing` suggests crates that are not dependencies. Use their patterns, not their setup steps.

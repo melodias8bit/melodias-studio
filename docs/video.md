@@ -41,7 +41,7 @@ The 1080p overlay clips live in `video/public/overlays/` and are committed. The 
 
 ## Setup notes
 
-- Node 18+ and pnpm are required by default; only the explicit ffmpeg path avoids them.
+- Node 24+ and pnpm are required by default; only the explicit ffmpeg path avoids them.
 - `pnpm-workspace.yaml` allows esbuild's build script, which pnpm blocks by default.
 - The first render downloads a Headless Shell for Remotion.
 - Remotion writes a ~120 MB file for a three minute track, compared to ~42 MB for the ffmpeg version.

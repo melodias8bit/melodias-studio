@@ -19,7 +19,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23060912'/%3E%3Cpath d='M6 12V4l6-1v7' fill='none' stroke='%23ffc857' stroke-width='2'/%3E%3Ccircle cx='4.5' cy='12' r='1.5' fill='%23ffc857'/%3E%3Ccircle cx='10.5' cy='10' r='1.5' fill='%23ffc857'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=VT323&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/main.css">
 </head>
 <body>
@@ -57,7 +57,7 @@
           <h1>One vibe in.<br><span class="gold">A song,<br>a still,<br>a video out.</span></h1>
           <p class="lede">
             <strong>melodias-studio</strong> runs an eleven-stage pipeline on your own GPU box:
-            llama-server writes the prompt, sd-server draws the still, ACE-Step composes an
+            llama.cpp writes the prompt, stable-diffusion.cpp draws the still, audio.cpp composes an
             original instrumental chiptune, Remotion cuts the 1080p video and the run leaves
             the YouTube copy ready to paste.
           </p>
@@ -81,12 +81,7 @@
             <div class="hero-frame">
               <img src="assets/img/banner.png" alt="Pixel-art Frieren at a retro computer, composing a thumbnail and a waveform" width="1774" height="887" fetchpriority="high">
             </div>
-            <figcaption>
-              <span class="t-path">output/epic-8-bit-artcore/</span>
-              <span class="t-chip">thumbnail.png</span>
-              <span class="t-chip">audio.mp3</span>
-              <span class="t-chip">video.mp4</span>
-            </figcaption>
+            <figcaption>A finished run: one still, one original track, one 1080p video, ready to ship.</figcaption>
           </figure>
           <p class="hero-note">
             <span class="aside-tag">note</span>
@@ -121,34 +116,32 @@ melodias</code></pre>
         </header>
 
         <div class="split">
-          <pre class="tree" aria-label="Output folder layout"><code><span class="t-dir">output/epic-8-bit-artcore/</span>
-&#9500;&#9472;&#9472; <span class="t-keeper">thumbnail.png</span>      8-bit still, 1280x720
-&#9500;&#9472;&#9472; <span class="t-keeper">audio.mp3</span>          original take, 3:30, -15 LUFS
-&#9500;&#9472;&#9472; <span class="t-keeper">video.mp4</span>          1920x1080, waveform + particles
-&#9500;&#9472;&#9472; <span class="t-keeper">youtube.txt</span>        title, intro, hashtags
-&#9500;&#9472;&#9472; <span class="t-dim">meta.json</span>          seeds, prompts, scores, verdict
-&#9500;&#9472;&#9472; <span class="t-dim">candidates/</span>        the pools you chose from
-&#9492;&#9472;&#9472; <span class="t-dim">work/</span>              source window, judge, score</code></pre>
+          <ul class="deliver" aria-label="What a run leaves behind">
+            <li><span>Still</span>An 8-bit cover, 1280x720, with its seed and prompt stored for replay.</li>
+            <li><span>Track</span>An original instrumental, about three and a half minutes, mastered for upload.</li>
+            <li><span>Video</span>A 1080p cut with the waveform, particles and channel branding.</li>
+            <li><span>YouTube copy</span>Title, description and hashtags, ready to paste.</li>
+          </ul>
 
           <div class="card-grid">
             <article class="card">
-              <h3>thumbnail.png</h3>
+              <h3>Still</h3>
               <p>
-                llama-server turns the vibe into an English prompt with the pixel style
-                pinned; sd-server returns three candidates. The seed and steps travel with
+                llama.cpp turns the vibe into an English prompt with the pixel style
+                pinned; stable-diffusion.cpp returns three candidates. The seed and steps travel with
                 the image, so a patched retry can be replayed.
               </p>
             </article>
             <article class="card">
-              <h3>audio.mp3</h3>
+              <h3>Track</h3>
               <p>
-                An original instrumental, 210 seconds by default. ACE-Step samples the
+                An original instrumental, 210 seconds by default. audio.cpp samples the
                 source for timbre only, writes its own intro and outro, and the master is
                 faded and normalized to -15 LUFS.
               </p>
             </article>
             <article class="card">
-              <h3>video.mp4</h3>
+              <h3>Video</h3>
               <p>
                 The chosen still with a slow zoom, the waveform, pixel particles and the
                 channel branding. Remotion by default; <code>VIDEO_RENDERER=ffmpeg</code> is
@@ -156,7 +149,7 @@ melodias</code></pre>
               </p>
             </article>
             <article class="card">
-              <h3>youtube.txt</h3>
+              <h3>YouTube copy</h3>
               <p>
                 Title, two opening paragraphs and 6 to 8 hashtags, written while the LLM is
                 already loaded for the prompt. Rebuild it offline with the static template
@@ -190,7 +183,7 @@ melodias</code></pre>
           <li class="stage">
             <span class="stage-num">01</span>
             <span class="stage-name">Image prompt</span>
-            <span class="stage-desc">llama-server rewrites the vibe as an English prompt.</span>
+            <span class="stage-desc">llama.cpp rewrites the vibe as an English prompt.</span>
           </li>
           <li class="stage">
             <span class="stage-num">02</span>
@@ -200,7 +193,7 @@ melodias</code></pre>
           <li class="stage">
             <span class="stage-num">03</span>
             <span class="stage-name">Image pool</span>
-            <span class="stage-desc">sd-server returns three 1280x720 candidates.</span>
+            <span class="stage-desc">stable-diffusion.cpp draws three 1280x720 candidates.</span>
           </li>
           <li class="stage">
             <span class="stage-num">04</span>
@@ -220,7 +213,7 @@ melodias</code></pre>
           <li class="stage">
             <span class="stage-num">07</span>
             <span class="stage-name">Audio drafts</span>
-            <span class="stage-desc">ACE-Step returns three 60 s takes.</span>
+            <span class="stage-desc">audio.cpp returns three 60 s takes.</span>
           </li>
           <li class="stage">
             <span class="stage-num">08</span>
@@ -312,7 +305,7 @@ melodias</code></pre>
 
         <p class="aside">
           <span class="aside-tag">budget</span>
-          Up to two image rounds while sd-server is up and one audio round when it lost
+          Up to two image rounds while stable-diffusion.cpp is up and one audio round when it lost
           eight points or more, independently of the image result.
         </p>
       </div>
@@ -391,26 +384,25 @@ melodias</code></pre>
         <div class="demo-grid">
           <figure class="demo-still">
             <div class="demo-frame">
-              <img src="assets/img/demo-thumbnail.webp" alt="Pixel-art still from the demo run: violinist on stage" width="1280" height="720" loading="lazy">
+              <img src="assets/img/demo-thumbnail.png" alt="Pixel-art still from the demo run: a girl before an outdoor orchestra stage at sunset" width="1280" height="720" loading="lazy">
             </div>
             <figcaption>
               <span class="shot-tag">Still</span>
-              output/world-s-most-epic-emotional-violin, World's Most Epic Emotional Violin.
-              Full files stay in <code>output/</code>, this page only ships the excerpt.
+              epic 8-bit orchestral finale. Cut to 30 seconds for the web; the full still, track and video stay with the run.
             </figcaption>
           </figure>
 
           <div class="demo-players">
             <article class="demo-player">
-              <h3>audio.mp3, 30 s excerpt</h3>
+              <h3>The track, 30 seconds</h3>
               <audio controls preload="metadata" src="assets/media/demo-audio.mp3"></audio>
               <p>Starts at 0:45 with 1 s fades on both ends, 96k for the web.</p>
             </article>
 
             <article class="demo-player">
-              <h3>video.mp4, 30 s excerpt</h3>
+              <h3>The video, 30 seconds</h3>
               <video controls playsinline preload="none"
-                     poster="assets/img/demo-thumbnail.webp"
+                     poster="assets/img/demo-thumbnail.png"
                      src="assets/media/demo-video.mp4"></video>
               <p>Same 30 s window, 720p with faststart so it plays before it finishes loading.</p>
             </article>
@@ -437,10 +429,10 @@ melodias</code></pre>
               <li>Rust 1.88+</li>
               <li>yt-dlp</li>
               <li>ffmpeg + ffprobe</li>
-              <li>llama-server</li>
-              <li>sd-server</li>
-              <li>audio.cpp + ACE-Step</li>
-              <li>Node 18+ + pnpm <em>video only</em></li>
+              <li>llama.cpp</li>
+              <li>stable-diffusion.cpp</li>
+              <li>audio.cpp</li>
+              <li>Node 24+ + pnpm <em>video only</em></li>
             </ul>
             <p class="small">
               The services can run on this machine or on another host over SSH. The
@@ -458,14 +450,19 @@ melodias</code></pre>
           <div>
             <figure class="rune">
               <figcaption>
-                <span>$ build and install</span>
+                <span>$ one-line install</span>
                 <button class="copy" type="button" data-copy="install-cmd">copy</button>
               </figcaption>
-              <pre id="install-cmd"><code>git clone https://github.com/melodias8bit/melodias-studio.git
-cd melodias-studio
-make install
-melodias</code></pre>
+              <pre id="install-cmd"><code>curl -fsSL https://raw.githubusercontent.com/melodias8bit/melodias-studio/main/install.sh | bash</code></pre>
             </figure>
+
+            <p class="small">
+              The installer verifies every prerequisite (Rust, yt-dlp, ffmpeg,
+              ffprobe, ssh), clones the repository, builds the release binary
+              and installs it into <code>~/.local/bin</code>. Prefer the manual
+              path? <code>git clone</code> the repository and run
+              <code>make install</code> instead.
+            </p>
 
             <figure class="rune">
               <figcaption>
@@ -566,7 +563,7 @@ melodias</code></pre>
     <div class="wrap footer-inner">
       <p>
         <strong>melodias-studio.</strong> MIT licensed. Built with llama.cpp,
-        stable-diffusion.cpp, ACE-Step and Remotion.
+        stable-diffusion.cpp, audio.cpp and Remotion.
       </p>
       <p>
         <a href="https://github.com/melodias8bit/melodias-studio">Repository</a> &middot;

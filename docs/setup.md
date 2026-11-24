@@ -9,7 +9,7 @@
   - a stable-diffusion.cpp server for the image (OpenAI images API)
   - an audio.cpp server with the ACE-Step family for the music (`/v1/tasks/run`)
 - `ssh` and `scp` only when the services run on another host or when the lifecycle commands need them.
-- Node 18+ and pnpm only for the produced Remotion video.
+- Node 24+ and pnpm only for the produced Remotion video.
 
 No particular GPU or model is required.
 

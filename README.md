@@ -6,12 +6,10 @@ A Rust TUI that generates 8-bit thumbnails, original three to four minute instru
 
 ## Quick Start
 
-Requires Rust 1.85+, `yt-dlp`, `ffmpeg`, `ffprobe` and three local HTTP services. See [setup](docs/setup.md) for the service contract and an example deployment.
+Requires Rust 1.85+, `yt-dlp`, `ffmpeg`, `ffprobe` and three local HTTP services. The installer verifies all of them. Manual path: clone the repository and run `make install`. See [setup](docs/setup.md) for the service contract and an example deployment.
 
 ```bash
-git clone https://github.com/melodias8bit/melodias-studio.git
-cd melodias-studio
-make install
+curl -fsSL https://raw.githubusercontent.com/melodias8bit/melodias-studio/main/install.sh | bash
 melodias
 ```
 
