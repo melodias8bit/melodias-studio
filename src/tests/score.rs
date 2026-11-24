@@ -32,6 +32,8 @@ fn worked_audio() -> AudioMetrics {
         leading: 0.0,
         repeat_sec: 6.0,
         variety: 1.0,
+        low_share: 0.30,
+        attack_db: -8.0,
     }
 }
 
@@ -205,6 +207,63 @@ fn audio_gates_catch_clip_and_leading_silence() {
             .iter()
             .any(|gate| gate.code == "GATE_DURATION")
     );
+}
+
+#[test]
+fn band_gate_rejects_bass_mud_only() {
+    // The worked example keeps most energy in the mids: passes with margin.
+    assert!(
+        audio_gates(&worked_audio(), 210.0)
+            .iter()
+            .all(|gate| gate.code != "GATE_BAND")
+    );
+
+    let mut balanced = worked_audio();
+    balanced.low_share = 0.49;
+    assert!(
+        audio_gates(&balanced, 210.0)
+            .iter()
+            .all(|gate| gate.code != "GATE_BAND")
+    );
+
+    // Most of the energy below 250 Hz buries the chiptune mids: rejected.
+    let mut muddy = worked_audio();
+    muddy.low_share = 0.87;
+    let gates = audio_gates(&muddy, 210.0);
+    assert!(gates.iter().any(|gate| gate.code == "GATE_BAND"));
+    let band = gates.iter().find(|gate| gate.code == "GATE_BAND");
+    assert!(band.is_some());
+    assert_eq!(band.unwrap().metric, "low_share");
+    assert_eq!(band.unwrap().severity, "high");
+}
+
+#[test]
+fn ramp_gate_rejects_a_hot_start_only() {
+    // A soft intro opening well below the middle: passes.
+    assert!(
+        audio_gates(&worked_audio(), 210.0)
+            .iter()
+            .all(|gate| gate.code != "GATE_RAMP")
+    );
+
+    // Starting at full energy is soft AUD_BUILD territory, not a gate.
+    let mut flat_start = worked_audio();
+    flat_start.attack_db = 0.5;
+    assert!(
+        audio_gates(&flat_start, 210.0)
+            .iter()
+            .all(|gate| gate.code != "GATE_RAMP")
+    );
+
+    // Opening louder than the middle is a pop or glitch take: rejected.
+    let mut hot_start = worked_audio();
+    hot_start.attack_db = 4.5;
+    let gates = audio_gates(&hot_start, 210.0);
+    assert!(gates.iter().any(|gate| gate.code == "GATE_RAMP"));
+    let ramp = gates.iter().find(|gate| gate.code == "GATE_RAMP");
+    assert!(ramp.is_some());
+    assert_eq!(ramp.unwrap().metric, "attack_db");
+    assert_eq!(ramp.unwrap().severity, "high");
 }
 
 #[test]
