@@ -45,8 +45,7 @@ custom domain is added, update the canonical and Open Graph URLs in
 - Theme: the page follows [DESIGN.md](DESIGN.md) (Mercury: onyx canvas,
   graphite cards, one cobalt action, Inter only, no shadows). Keep new styles
   inside that system.
-- Artwork: `banner.png` is the README banner. Keep the character credit in the
-  footer while it shows Frieren.
+- Artwork: `banner.png` is the README banner.
 - Demo media: the page shows one real run from `output/`. The committed
   sources are `docs/assets/demo-thumbnail.png`, `docs/assets/demo-audio.mp3`
   and `docs/assets/demo-video.mp4`; `scripts/prepare-site.sh` stages them into

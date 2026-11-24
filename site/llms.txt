@@ -6,6 +6,7 @@ melodias-studio runs an eleven-stage pipeline on your own GPU box: llama.cpp wri
 
 - Project page: https://melodias8bit.github.io/melodias-studio/
 - Repository: https://github.com/melodias8bit/melodias-studio
+- YouTube channel: https://www.youtube.com/@melodias8bit
 - License: MIT
 
 ## Install
