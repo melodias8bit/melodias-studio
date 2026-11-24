@@ -5,6 +5,7 @@ mod chip;
 mod clients;
 mod config;
 mod dashboard;
+mod export;
 mod history;
 mod judge;
 mod media;
@@ -27,7 +28,8 @@ use crossterm::style::Stylize;
 use pipeline::{Msg, State};
 
 const USAGE: &str = "usage: melodias                 (TUI)\n       melodias <url> <vibe>     (headless)\n       melodias image <dir>      (regenerate the thumbnail of a run)\n       melodias judge <dir>      (review a finished run with the judge)\n       melodias score <dir>      (score a finished run, no GPU)\n       melodias youtube <dir>    (YouTube copy for a finished run, no GPU)\n       melodias history [view]   (runs, findings or trend, from the local database)
-       melodias backfill [dir]   (score finished runs into the history database)\n       melodias dashboard        (local read-only charts over the database)\n       melodias render <dir>     (produced video with Remotion)\n       melodias video <dir>      (fast video with ffmpeg)\n       melodias refs fetch       (fill the reference library from a source)\n       melodias refs import      (import files or packs into the library)\n       melodias refs generate    (generate reference images with sd-server)
+       melodias backfill [dir]   (score finished runs into the history database)\n       melodias dashboard        (local read-only charts over the database)
+       melodias export <runs-csv> <out-dir> (static overview from history CSV, no server)\n       melodias render <dir>     (produced video with Remotion)\n       melodias video <dir>      (fast video with ffmpeg)\n       melodias refs fetch       (fill the reference library from a source)\n       melodias refs import      (import files or packs into the library)\n       melodias refs generate    (generate reference images with sd-server)
        melodias chip <url|file>  (experimental NES cover of a track)";
 
 fn main() -> io::Result<()> {
@@ -60,6 +62,9 @@ fn main() -> io::Result<()> {
     }
     if args.first().is_some_and(|arg| arg == "dashboard") {
         return run_dashboard(cfg, &args);
+    }
+    if args.first().is_some_and(|arg| arg == "export") {
+        return run_export(&args);
     }
     if args.first().is_some_and(|arg| arg == "render") {
         return run_render(cfg, &args);
@@ -205,6 +210,69 @@ fn run_dashboard(cfg: config::Config, args: &[String]) -> io::Result<()> {
     }
     dashboard::serve(cfg.db_path.clone(), cfg.out_dir.clone(), port, limit.max(1))
         .map_err(|error| io::Error::other(format!("{error:#}")))
+}
+
+/// Renders the static dashboard overview from history CSV files. It only
+/// reads the given CSVs and writes `index.html` into the out directory.
+fn run_export(args: &[String]) -> io::Result<()> {
+    let mut runs_csv = None;
+    let mut findings_csv = None;
+    let mut trend_csv = None;
+    let mut out_dir = None;
+    let mut index = 1;
+    while let Some(arg) = args.get(index) {
+        match arg.as_str() {
+            "--findings" => {
+                index += 1;
+                findings_csv = args.get(index);
+            }
+            "--trend" => {
+                index += 1;
+                trend_csv = args.get(index);
+            }
+            other if other.starts_with('-') => {
+                eprintln!(
+                    "usage: melodias export <runs-csv> <out-dir> \
+                     [--findings <findings-csv>] [--trend <trend-csv>]"
+                );
+                eprintln!("unknown option: {other}");
+                std::process::exit(2);
+            }
+            other => {
+                if runs_csv.is_none() {
+                    runs_csv = Some(other);
+                } else if out_dir.is_none() {
+                    out_dir = Some(other);
+                } else {
+                    eprintln!(
+                        "usage: melodias export <runs-csv> <out-dir> \
+                         [--findings <findings-csv>] [--trend <trend-csv>]"
+                    );
+                    std::process::exit(2);
+                }
+            }
+        }
+        index += 1;
+    }
+    let (Some(runs_csv), Some(out_dir)) = (runs_csv, out_dir) else {
+        eprintln!(
+            "usage: melodias export <runs-csv> <out-dir> \
+             [--findings <findings-csv>] [--trend <trend-csv>]"
+        );
+        std::process::exit(2);
+    };
+    export::export_to_dir(
+        PathBuf::from(runs_csv).as_path(),
+        findings_csv.map(PathBuf::from).as_deref(),
+        trend_csv.map(PathBuf::from).as_deref(),
+        PathBuf::from(out_dir).as_path(),
+    )
+    .map_err(|error| io::Error::other(format!("{error:#}")))?;
+    println!(
+        "export: {}",
+        PathBuf::from(out_dir).join("index.html").display()
+    );
+    Ok(())
 }
 
 fn next_value<T: std::str::FromStr>(args: &[String], index: &mut usize, flag: &str) -> T {

@@ -165,6 +165,28 @@ The page is served by the binary from `dashboard/`, with no Node, no build step 
 
 See [dashboard/README.md](../dashboard/README.md) for screenshots and the endpoint list.
 
+### Static export
+
+`melodias export` renders the same overview from history CSV files as static
+`index.html`: totals, the score trend, the findings that cost the most, the
+outcome mix and the run table, with no server and no database. The score
+trend, the outcomes and the run table only need the runs CSV; pass `--findings`
+and `--trend` to include those sections too. Judge spend, run time, candidate
+and patch counts and the editorial axes need the live dashboard, because the
+CSV carries no cost, timing or verdict data:
+
+```bash
+melodias history --csv > /tmp/runs.csv
+melodias history findings --csv > /tmp/findings.csv
+melodias history trend --csv > /tmp/trend.csv
+melodias export /tmp/runs.csv /tmp/overview --findings /tmp/findings.csv --trend /tmp/trend.csv
+# or
+MELODIAS_DB=/path/to/history.db melodias history --csv > /tmp/runs.csv
+```
+
+The page is one self-contained file with inline CSS and inline SVG, so it can
+be attached to a release or shared offline without the database.
+
 ### Produced video with Remotion
 
 For the richer composition (bokeh overlays, birds, audio-reactive bars, channel label):
