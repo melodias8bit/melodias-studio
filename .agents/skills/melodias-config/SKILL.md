@@ -56,6 +56,8 @@ variables that affect make targets, not the binary.
 | `WIDTH`, `HEIGHT` | same | `1280`, `720` | Thumbnail size |
 | `IMAGE_STEPS` | `image_steps` | `20` | sd-server sampling steps |
 | `AUDIO_STYLE`, `IMAGE_STYLE` | same | `8-bit chiptune`, `8-bit pixel art` | Fixed medium and look |
+| `AUDIO_DETAIL` | `audio_detail` | empty | Run extras appended verbatim to the audio prompt |
+| `AUDIO_NEGATIVE_PROMPT` | `audio_negative_prompt` | detailed list | Voices out, production tight, on every audio request |
 | `AUDIO_DRAFT_SEC`, `AUDIO_DRAFT_STEPS` | same | `60`, `16` | Short review drafts |
 | `AUDIO_DRAFT_SAMPLER` | `audio_draft_sampler` | `euler` | Draft sampler |
 | `CANDIDATES` | `candidates` | `3` | Per modality; pool capped at 9 |

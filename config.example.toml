@@ -30,6 +30,9 @@
 
 # --- Content ---------------------------------------------------------------
 # audio_style = "8-bit chiptune"
+# Run-specific extras appended verbatim to the music prompt (BPM, instruments).
+# Empty by default; the template already carries the arrangement detail.
+# audio_detail = "117 BPM in 4/4, electric lead guitars over orchestra"
 # Optional reference for ACE-Step: a ChipForge render, a Wario Synth export
 # or a MIDI-driven chip bounce. Replaces a window of the source video.
 # audio_reference = "/path/to/loop.wav"
@@ -65,7 +68,9 @@
 # audio_draft_steps = 16
 # audio_draft_sampler = "euler"
 # reference_sec = 60
-# audio_negative_prompt = "vocals, singing, voice, choir, lyrics, humming, vocal chops, spoken word"
+# Detailed steering text: voices stay out and the production stays tight and
+# finished. Sent on every audio request, reference or not.
+# audio_negative_prompt = "vocals, singing, rap, spoken words, choir, lyrics, humming, vocal chops, voice, acoustic folk, ambient music, lo-fi production, trap beats, hip hop drums, EDM drops, dubstep, generic pop structure, repetitive four-chord pop progression, weak percussion, muddy bass, distorted muddy guitars, excessive reverb, harsh clipping, synthetic cheap-sounding instruments, monotonous melodies, overly slow tempo, excessive silence, unfinished arrangement, abrupt ending, poor mixing, low fidelity, amateur production"
 
 # --- Master ----------------------------------------------------------------
 # fade_in_sec = 1.5

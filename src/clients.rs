@@ -15,8 +15,9 @@ fn short_client() -> Result<reqwest::blocking::Client> {
         .context("creating the HTTP client")
 }
 
-/// One generation on the P40 can take half an hour, so generation requests get
-/// their own budget instead of the short one used by the health probes.
+/// One generation on the P40 takes about six minutes for a 210 s take at 32
+/// steps including the model load (measured 2026-11-25), so generation requests
+/// get their own budget instead of the short one used by the health probes.
 fn long_client() -> Result<reqwest::blocking::Client> {
     reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(3600))
@@ -87,11 +88,14 @@ fn wait(name: &str, timeout: Duration, probe: impl Fn() -> Result<()>) -> Result
 pub fn ask_image_prompt(cfg: &Config, vibe: &str) -> Result<String> {
     let url = format!("{}/v1/chat/completions", cfg.llm_url.trim_end_matches('/'));
     let system = format!(
-        "You write prompts for a text-to-image model. Reply with ONE line of at most 60 \
-words, in English, no quotes, no explanation. Describe a 16:9 YouTube thumbnail in {} \
-style: one anime character in a scene, detailed background, nostalgic cozy mood. The \
-character has natural eyes with a visible iris and pupil; never glowing, neon or empty \
-eyes. Never mention audio, BPM, tempo, music, songs, text or watermarks.",
+        "You write prompts for a text-to-image model. Reply with a single paragraph of 120 to 180 \
+words, in English, no quotes, no explanation, no headers. Describe a 16:9 YouTube thumbnail \
+in {} style, covering in order: composition (one anime character in a scene, readable at \
+small size), the character (pose, outfit, expression, natural eyes with a visible iris and \
+pupil; never glowing, neon or empty eyes), the background (detailed, layered, nostalgic \
+cozy mood), and palette and light (limited palette, clear key light, rim light, contrast \
+that reads on dark mode). Never mention audio, BPM, tempo, music, songs, text or \
+watermarks.",
         cfg.image_style
     );
     let user =
@@ -99,7 +103,7 @@ eyes. Never mention audio, BPM, tempo, music, songs, text or watermarks.",
     let body = json!({
         "model": cfg.llm_model,
         "temperature": 0.5,
-        "max_tokens": 220,
+        "max_tokens": 500,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user}

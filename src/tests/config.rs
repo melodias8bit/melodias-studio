@@ -8,6 +8,7 @@ fn reads_the_optional_fields() {
         fade_in_sec = 2.0
         audio_negative_prompt = "vocals"
         audio_style = "lofi"
+        audio_detail = "117 BPM"
         image_style = "watercolor"
         image_model = "MOSS-Image"
         creative_model = "Qwen3-4B"
@@ -32,6 +33,7 @@ fn reads_the_optional_fields() {
     assert_eq!(file.fade_in_sec, Some(2.0));
     assert_eq!(file.audio_negative_prompt.as_deref(), Some("vocals"));
     assert_eq!(file.audio_style.as_deref(), Some("lofi"));
+    assert_eq!(file.audio_detail.as_deref(), Some("117 BPM"));
     assert_eq!(file.image_style.as_deref(), Some("watercolor"));
     assert_eq!(file.image_model.as_deref(), Some("MOSS-Image"));
     assert_eq!(file.creative_model.as_deref(), Some("Qwen3-4B"));
