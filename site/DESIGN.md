@@ -170,5 +170,5 @@ Above the Mercury system sits a product-page structure borrowed from novu.co:
 
 - Sticky top bar with section links and a GitHub star button (live count, graceful fallback).
 - Centered hero: badge pill, display headline, install command with copy button, stat row, and one ambient Three.js particle wave behind the copy (see the web3d skill; CDN import, no build step, pauses off screen).
-- Engine strip naming the stack, run-mode tabs (TUI screenshot vs headless command), an eleven-step horizontal stepper, deliverable cards, score panels, gallery, real-run demo with channel tracklist, requirements plus installer, command table, FAQ accordion, closing band, and a three-column footer.
+- Engine strip naming the stack, one run section (run-mode tabs with TUI screenshot vs headless command, inline pipeline diagram, deliverable cards), filterable creations gallery, real-run demo with channel tracklist, FAQ accordion and a three-column footer.
 - One cobalt action per view (hero install, closing band repeats the same action). No emojis, no external player libraries, native audio and video elements.
