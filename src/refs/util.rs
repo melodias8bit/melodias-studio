@@ -81,7 +81,11 @@ pub fn http_get(request: HttpRequest<'_>) -> Result<Vec<u8>> {
 pub fn sha256_bytes(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 pub fn url_extension(url: &str) -> String {
@@ -257,7 +261,10 @@ pub fn extract_images(request: ExtractRequest<'_>) -> Result<Vec<Extracted>> {
         if entry.is_dir() {
             continue;
         }
-        let name = entry.name().to_string();
+        let name = entry
+            .name()
+            .with_context(|| format!("reading member {index} name"))?
+            .to_string();
         if name.starts_with("__MACOSX/") || name.starts_with("._") || name.contains("/._") {
             continue;
         }
