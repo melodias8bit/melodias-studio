@@ -65,9 +65,9 @@
 
   var targets = $$(
     ".section .sec-head, .section .tree, .section .card, .section .stage, " +
-    ".section .panel, .section .shot, .section .chips, .section .rune, " +
+    ".section .panel, .section .shot, .section .creation, .section .chips, .section .rune, " +
     ".section .table-wrap, .section .doc, .section .aside, .section .tab, " +
-    ".section .stepper, .section .faq, .section .cta-inner, .strip-inner, " +
+    ".section .faq, .strip-inner, " +
     ".footer-col"
   );
 
@@ -94,7 +94,9 @@
           observer.unobserve(entry.target);
         });
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.08 }
+      // Preload margin: reveal sections just before they enter the viewport
+      // so fast scrolls and anchor jumps never land on a blank gap.
+      { rootMargin: "0px 0px 400px 0px", threshold: 0 }
     );
 
     targets.forEach(function (node) {
@@ -130,6 +132,112 @@
         });
       });
     });
+  }
+
+  /* ---------- creations gallery ---------- */
+
+  var grid = $("#creations-grid");
+  var count = $("#creations-count");
+  var winnersOnly = $("#winners-only");
+  var filters = $$(".creation-filter");
+  var activeFilter = "all";
+
+  var creations = function () {
+    return $$(".creation", grid || document);
+  };
+
+  var updateCount = function () {
+    if (!count || !grid) return;
+    var visible = creations().filter(function (node) {
+      return !node.hidden;
+    }).length;
+    var total = creations().length;
+    count.textContent = visible + " of " + total + " shown";
+  };
+
+  var applyFilters = function () {
+    if (!grid) return;
+    creations().forEach(function (node) {
+      var matchRun = activeFilter === "all" || node.dataset.run === activeFilter;
+      var matchWinner = !winnersOnly || !winnersOnly.checked || node.dataset.winner === "1";
+      node.hidden = !(matchRun && matchWinner);
+    });
+    updateCount();
+  };
+
+  if (grid) {
+    filters.forEach(function (button) {
+      button.addEventListener("click", function () {
+        activeFilter = button.dataset.filter;
+        filters.forEach(function (other) {
+          var selected = other === button;
+          other.classList.toggle("is-active", selected);
+          other.setAttribute("aria-pressed", selected ? "true" : "false");
+        });
+        applyFilters();
+      });
+    });
+
+    if (winnersOnly) {
+      winnersOnly.addEventListener("change", applyFilters);
+    }
+
+    /* ---------- lightbox ---------- */
+
+    var dialog = $("#creation-lightbox");
+    var dialogImg = $("#creation-lightbox-img");
+    var dialogCaption = $("#creation-lightbox-caption");
+    var dialogPosition = $("#creation-position");
+    var prevButton = $("#creation-prev");
+    var nextButton = $("#creation-next");
+    var closeButton = $("#creation-close");
+    var current = 0;
+
+    var visibleCreations = function () {
+      return creations().filter(function (node) {
+        return !node.hidden;
+      });
+    };
+
+    var show = function (index) {
+      var list = visibleCreations();
+      if (list.length === 0) return;
+      current = (index + list.length) % list.length;
+      var node = list[current];
+      var img = node.querySelector("img");
+      if (dialogImg && img) {
+        dialogImg.src = img.src;
+        dialogImg.alt = img.alt;
+      }
+      if (dialogCaption) dialogCaption.textContent = node.dataset.caption || "";
+      if (dialogPosition) dialogPosition.textContent = current + 1 + " / " + list.length;
+    };
+
+    grid.addEventListener("click", function (event) {
+      var button = event.target.closest(".creation-open");
+      if (!button || !dialog) return;
+      var node = button.closest(".creation");
+      var list = visibleCreations();
+      show(list.indexOf(node));
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      }
+    });
+
+    if (prevButton) prevButton.addEventListener("click", function () { show(current - 1); });
+    if (nextButton) nextButton.addEventListener("click", function () { show(current + 1); });
+    if (closeButton) closeButton.addEventListener("click", function () { if (dialog) dialog.close(); });
+    if (dialog) {
+      dialog.addEventListener("click", function (event) {
+        if (event.target === dialog) dialog.close();
+      });
+      dialog.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowLeft") show(current - 1);
+        if (event.key === "ArrowRight") show(current + 1);
+      });
+    }
+
+    applyFilters();
   }
 
   /* ---------- GitHub stars ---------- */

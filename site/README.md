@@ -38,12 +38,37 @@ custom domain is added, update the canonical and Open Graph URLs in
 ## What to update
 
 - Gallery: `docs/assets/tui-review.png` (regenerate with
-  `DUMP_TUI_HTML_DIR=... cargo test draws_without_leaving_the_terminal`) plus
-  six pool stills (`docs/assets/gallery-*.webp`, winners and losers from four
-  runs, 960 px WebP). The dashboard keeps its own screenshots in
-  `dashboard/README.md`.
-- Copy: the stage list in the page mirrors `STAGES` in `src/pipeline.rs`; the
-  targets in the commands table mirror the `Makefile`.
+  `DUMP_TUI_HTML_DIR=... cargo test draws_without_leaving_the_terminal`) feeds
+  the TUI tab, while the creations component reads the 26 pool stills
+  (`docs/assets/gallery-*.webp`, winners and losers from five runs, 960 px
+  WebP): `gallery-battle-01..06` (winner 01), `gallery-finale-01..06`
+  (winner 04), `gallery-artcore-01` (single take), `gallery-violin-01..04`
+  (winner 04) and `gallery-kawaii-01..09` (winner 04). The component filters by
+  run, toggles winners only and opens a lightbox, so it scales past hundreds
+  of stills without endless scroll. Regenerate one pool with:
+  `ffmpeg -y -i output/<slug>/candidates/image-NN.png -vf scale=960:-2
+  -c:v libwebp -quality 82 docs/assets/gallery-<prefix>-NN.webp`, then add one
+  `figure.creation` per still plus its filter count in `site/index.html`. The
+  dashboard keeps its own screenshots in `dashboard/README.md`.
+- Demo tracklist: `More from the channel` lists the newest upload first with
+  its YouTube duration (for example `3:30` for a 210 s run). Put the new video
+  on top when publishing; the demo caption links the featured run.
+- Pipeline diagram: the SVG inside the pipeline section is extracted from
+  `site/pipeline.html`, an Archify workflow generated from `src/pipeline.rs`
+  (`STAGES` plus the retry and review branches). The SVG carries the Archify
+  dark variables scoped to `.diagram-svg` in `main.css`. Regenerate with the
+  archify skill from `.archify/workflow-pipeline-*/candidate.json`, or author
+  a fresh candidate and run `node bin/archify.mjs finalize workflow
+  <candidate> site/pipeline.html --repo-root <repo> --quality showcase
+  --json`, then re-extract the inline `<svg>` into `index.html`. Crop its
+  `viewBox` height to 542 to drop the built-in legend and keep the HTML
+  `.diagram-legend` below the frame instead: same hues, readable size. The
+  standalone `site/pipeline.html` stays as the interactive source but is not
+  linked from the landing.
+- Copy: the diagram replaces the old stage list, so a `STAGES` change in
+  `src/pipeline.rs` means regenerating the diagram. Per-run work (image,
+  judge, score, youtube, render, video, history, export, dashboard, backfill,
+  refs) lives in the `Makefile`, not on the landing.
 - Tabs: the TUI panel shows `docs/assets/tui.png`, the headless panel the
   `melodias '<url>' '<vibe>'` command. Keep both honest when the CLI changes.
 - FAQ: answers summarize `docs/setup.md`, `docs/usage.md` and
@@ -57,29 +82,27 @@ custom domain is added, update the canonical and Open Graph URLs in
   inside that system.
 - Artwork: `banner.png` is the README banner.
 - Demo media: the page shows one real run from `output/`. The committed
-  sources are `docs/assets/demo-thumbnail.png`, `docs/assets/demo-audio.mp3`
+  sources are `docs/assets/demo-thumbnail.webp`, `docs/assets/demo-audio.mp3`
   and `docs/assets/demo-video.mp4`; `scripts/prepare-site.sh` stages them into
   `site/assets/img/` and `site/assets/media/`. Current run:
-  `output/epic-8-bit-orchestral-finale`, vibe "epic 8-bit orchestral finale"
-  (total 69.25, the highest recent score for this vibe).
+  `output/euphoric-kawaii-edm-showdown-sparkling-s`, vibe "euphoric kawaii EDM
+  showdown, sparkling synth leads over pounding festival bass".
   Refresh them with:
 
   ```bash
-  slug=epic-8-bit-orchestral-finale
-  cp output/$slug/thumbnail.png docs/assets/demo-thumbnail.png
+  slug=euphoric-kawaii-edm-showdown-sparkling-s
+  ffmpeg -y -i output/$slug/thumbnail.png -vf scale=1280:-2 \
+    -c:v libwebp -quality 85 docs/assets/demo-thumbnail.webp
   ffmpeg -y -ss 45 -t 30 -i output/$slug/audio.mp3 \
     -af "afade=t=in:st=0:d=1,afade=t=out:st=29:d=1" \
     -b:a 96k docs/assets/demo-audio.mp3
   ffmpeg -y -ss 45 -t 30 -i output/$slug/video.mp4 \
-    -vf scale=1280:-2 -c:v libx264 -crf 30 -preset slow \
+    -vf scale=1280:-2 -c:v libx264 -crf 27 -preset slow \
     -c:a aac -b:a 96k -movflags +faststart docs/assets/demo-video.mp4
   ls -lh docs/assets/demo-*
   ```
 
-  If the still is over 1.5 MB, convert it to WebP instead of copying it:
-  `ffmpeg -y -i output/$slug/thumbnail.png -vf scale=1280:-2 -c:v libwebp
-  -quality 85 docs/assets/demo-thumbnail.webp`, and point the page poster at
-  the `.webp` file. Keep the still under 1 MB, the audio under 1 MB and the
+  Keep the still under 1 MB, the audio under 1 MB and the
   clip under 4 MB so the whole page stays under about 12 MB.
   Follow [docs/runbooks/site-demo.md](../docs/runbooks/site-demo.md)
   on the machine with the generated runs for the full checklist.
