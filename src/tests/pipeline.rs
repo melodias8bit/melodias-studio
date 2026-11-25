@@ -40,10 +40,21 @@ fn scored(name: &str, value: Option<f64>, findings: Vec<score::Finding>) -> Scor
 
 #[test]
 fn the_medium_is_always_in_the_audio_prompt() {
-    let prompt = compose_audio_prompt("epic orchestral", "8-bit chiptune");
+    let prompt = compose_audio_prompt("epic orchestral", "8-bit chiptune", "");
     assert!(prompt.starts_with("epic orchestral, 8-bit chiptune"));
     assert!(prompt.contains("instrumental"));
-    assert!(prompt.contains("fades out"));
+    assert!(prompt.contains("No vocals"));
+    assert!(prompt.contains("TEMPO AND RHYTHM"));
+    assert!(prompt.contains("STRUCTURE"));
+    assert!(prompt.contains("[Theme A]"));
+}
+
+#[test]
+fn the_audio_detail_is_appended_verbatim() {
+    let prompt = compose_audio_prompt("epic orchestral", "8-bit chiptune", "117 BPM, lead guitars");
+    assert!(prompt.contains("DETAIL\n117 BPM, lead guitars"));
+    let plain = compose_audio_prompt("epic orchestral", "8-bit chiptune", "  ");
+    assert!(!plain.contains("DETAIL"));
 }
 
 #[test]

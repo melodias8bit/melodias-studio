@@ -264,7 +264,7 @@ fn run(
     log(tx, format!("remote reference: {remote}"));
 
     let mut audio_prompt = retry::Prompt::new(
-        compose_audio_prompt(vibe, &cfg.audio_style),
+        compose_audio_prompt(vibe, &cfg.audio_style, &cfg.audio_detail),
         cfg.audio_negative_prompt.clone(),
     );
     log(tx, format!("prompt audio: {}", audio_prompt.positive));
@@ -1152,11 +1152,70 @@ pub fn slugify(text: &str) -> String {
 }
 
 /// The channel medium is a rule: the vibe adds mood, the style is always there.
-pub fn compose_audio_prompt(vibe: &str, style: &str) -> String {
-    format!(
-        "{vibe}, {style}, instrumental, soft intro that builds gradually, full arrangement in \
-         the middle, gentle outro that resolves and fades out"
-    )
+/// The template carries the same sectional detail a hand-written prompt has, so
+/// a short vibe still gets a full arrangement: style, tempo, lead, rhythm,
+/// layers, harmony, dynamics, production and structure. `detail` holds run-
+/// specific extras (BPM, instruments) and is appended verbatim; it stays empty
+/// unless the run needs it. Instrumental only, always.
+pub fn compose_audio_prompt(vibe: &str, style: &str, detail: &str) -> String {
+    let base = format!(
+        "{vibe}, {style} instrumental track.\n\n\
+         STYLE\n\
+         Instrumental {style} music in the world of {vibe}: an engaging, emotionally charged piece \
+         with a strong musical identity and constant forward momentum, composed as a continuous \
+         musical journey rather than a conventional pop song. Instrumental only. No vocals. An \
+         original composition with its own melodies, riffs, chord progressions and musical \
+         identity.\n\n\
+         TEMPO AND RHYTHM\n\
+         A clear tempo and meter that fit the mood of {vibe}, with a driving rhythmic pulse \
+         throughout the composition. Tight, punchy drums with powerful kick drum patterns, sharp \
+         snare hits, energetic cymbal crashes and active hi-hat work. The rhythm should feel \
+         precise, propulsive and full of momentum.\n\n\
+         LEAD\n\
+         One expressive lead voice as the primary melodic instrument, with a bright, defined tone, \
+         strong sustain and articulate phrasing. Build the musical identity around a memorable, \
+         repetitive melodic motif with variations, call-and-response phrases and increasingly \
+         elaborate development. Confident, expressive and unmistakably melodic, with occasional \
+         harmonized lines, layered counterpoint and short fills between phrases.\n\n\
+         RHYTHM SECTION\n\
+         A powerful bass foundation tightly locked to the kick drum, driving the low end with an \
+         active line that reinforces the rhythmic patterns while adding occasional melodic \
+         movement. Rhythmic chords alternate between sustained harmonic support and fast, \
+         repetitive patterns.\n\n\
+         LAYERS\n\
+         Supporting orchestral and synthesizer layers that reinforce the atmosphere without \
+         overpowering the lead: dramatic strings, brass-like accents, stabs and atmospheric keys, \
+         with short melodic responses, dramatic transitions and cinematic accents.\n\n\
+         HARMONY\n\
+         Strong melodic hooks, dramatic harmonic movement, tension and triumphant resolution, \
+         balancing the emotions of {vibe} with memorable, expressive melodies. Strong motifs, \
+         energetic sequences and carefully placed harmonic changes.\n\n\
+         ARRANGEMENT\n\
+         Introduce the central motif early. Gradually add layers, increase complexity and vary the \
+         material so it never turns monotonous. Contrast reduced passages against powerful \
+         full-band returns, with dramatic transitions, fills and tightly synchronized accents.\n\n\
+         PRODUCTION\n\
+         Professional-quality modern soundtrack production: clear separation between instruments, \
+         punchy drums, tight low end, articulate lead, wide stereo imaging and controlled, detailed \
+         layering. Tasteful room ambience and moderate reverb for depth without losing clarity or \
+         rhythmic precision. A polished, energetic, full-band sound.\n\n\
+         STRUCTURE\n\
+         [Intro] A short, energetic opening with a recognizable rhythmic motif and immediate \
+         momentum. [Theme A] The central melodic motif over the driving rhythm section, \
+         establishing the identity. [Theme A variation] The motif repeated with harmonies, accents \
+         and more elaborate variations. [Theme B] A contrasting passage with different harmony, \
+         more tension and more expressive phrasing. [Development] The main ideas developed through \
+         faster runs, rhythmic variations and layered harmonies. [Break] Briefly reduced \
+         instrumentation for contrast and anticipation, keeping the rhythmic identity. [Climax] The \
+         main motif back with the full band at maximum intensity. [Finale] A powerful, memorable \
+         conclusion with a decisive resolution. [End]"
+    );
+    let detail = detail.trim();
+    if detail.is_empty() {
+        base
+    } else {
+        format!("{base}\n\nDETAIL\n{detail}")
+    }
 }
 
 #[cfg(test)]

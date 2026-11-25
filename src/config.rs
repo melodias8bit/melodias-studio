@@ -27,6 +27,8 @@ pub struct Config {
     pub audio_stop_cmd: String,
     /// Fixed medium for the music prompt, independent of the vibe.
     pub audio_style: String,
+    /// Run-specific extras appended verbatim to the music prompt (BPM, instruments).
+    pub audio_detail: String,
     /// Fixed style for the thumbnail prompt, pinned in the system message.
     pub image_style: String,
     /// Model labels for the YouTube copy; they are copy, not request parameters.
@@ -144,6 +146,7 @@ impl Config {
                 "/home/ubuntu/bin/serve-audio.sh stop",
             ),
             audio_style: pick(env("AUDIO_STYLE"), file.audio_style, "8-bit chiptune"),
+            audio_detail: pick(env("AUDIO_DETAIL"), file.audio_detail, ""),
             image_style: pick(env("IMAGE_STYLE"), file.image_style, "8-bit pixel art"),
             image_model: pick(
                 env("IMAGE_MODEL"),
@@ -163,7 +166,13 @@ impl Config {
             audio_negative_prompt: pick(
                 env("AUDIO_NEGATIVE_PROMPT"),
                 file.audio_negative_prompt,
-                "vocals, singing, voice, choir, lyrics, humming, vocal chops, spoken word",
+                "vocals, singing, rap, spoken words, choir, lyrics, humming, vocal chops, voice, \
+                 acoustic folk, ambient music, lo-fi production, trap beats, hip hop drums, EDM \
+                 drops, dubstep, generic pop structure, repetitive four-chord pop progression, \
+                 weak percussion, muddy bass, distorted muddy guitars, excessive reverb, harsh \
+                 clipping, synthetic cheap-sounding instruments, monotonous melodies, overly slow \
+                 tempo, excessive silence, unfinished arrangement, abrupt ending, poor mixing, low \
+                 fidelity, amateur production",
             ),
             gpu_label: pick(env("GPU_LABEL"), file.gpu_label, "local models"),
             duration_sec: pick_parsed(env("DURATION_SEC"), file.duration_sec, 210),
@@ -311,6 +320,7 @@ struct FileConfig {
     audio_start_cmd: Option<String>,
     audio_stop_cmd: Option<String>,
     audio_style: Option<String>,
+    audio_detail: Option<String>,
     image_style: Option<String>,
     image_model: Option<String>,
     creative_model: Option<String>,

@@ -24,6 +24,7 @@ cp config.example.toml ~/.config/melodias-studio/config.toml
 | `MELODIAS_DB` | `history.db` next to `config.toml` | SQLite file behind `melodias history` |
 | `GPU_LABEL` | `local models` | label in the header and the splash |
 | `AUDIO_STYLE` | `8-bit chiptune` | fixed medium added to every audio prompt |
+| `AUDIO_DETAIL` | empty | run-specific extras (BPM, instruments) appended verbatim to the audio prompt |
 | `IMAGE_STYLE` | `8-bit pixel art` | style pinned in the image prompt system message |
 | `IMAGE_MODEL` | `MOSS-Image-SFT-UD-Q4_K_XL` | image model label in the YouTube description |
 | `CREATIVE_MODEL` | `Qwen3-4B-Instruct-2507` | LLM model label in the YouTube description |
@@ -87,7 +88,7 @@ Go includes $30 of Argon usage per month ($120 on Go Plus), so the default 3 + 3
 
 A run costs about $0.03 of the allowance for 20 to 30 s of judge time, next to roughly 36 minutes of GPU work.
 
-The channel medium is a hard rule: the audio prompt always gets `AUDIO_STYLE`, even when the vibe does not mention it, and the image system message always pins `IMAGE_STYLE`. The vibe adds mood and references, not the medium.
+The channel medium is a hard rule: the audio prompt always gets `AUDIO_STYLE`, even when the vibe does not mention it, and the image system message always pins `IMAGE_STYLE`. The vibe adds mood and references, not the medium. `compose_audio_prompt` wraps the vibe with the full arrangement arc (motif first, development, dynamic break, climactic return, decisive ending) and the production bar, so a short vibe still gets a detailed prompt, and the detailed `AUDIO_NEGATIVE_PROMPT` goes on every audio request, reference or not.
 
 `AUDIO_REFERENCE` replaces the window taken from the source video as the ACE-Step reference. Point it at a WAV you already have, for example a ChipForge render, a Wario Synth export or a MIDI-driven chip bounce. The file is normalized to 48 kHz stereo PCM and cut to `REFERENCE_SEC`, then pushed to the GPU host like the normal reference. The rest of the pipeline is unchanged, so the score and the retry rounds still apply.
 
@@ -217,6 +218,6 @@ They run between stages, over SSH when `SSH_HOST` is set. The defaults point at 
 | `SD_STOP_CMD` | `/home/ubuntu/bin/serve-sd.sh stop` | before the audio stage |
 | `AUDIO_START_CMD` | `/home/ubuntu/bin/serve-audio.sh start` | before the audio stage |
 | `AUDIO_STOP_CMD` | `/home/ubuntu/bin/serve-audio.sh stop` | after the take, even if it failed |
-| `AUDIO_NEGATIVE_PROMPT` | `vocals, singing, voice, choir, lyrics, humming, vocal chops, spoken word` | steering text that keeps voices out |
+| `AUDIO_NEGATIVE_PROMPT` | vocals, singing, rap, spoken words, choir, ... amateur production (full list in `config.example.toml`) | detailed steering text sent on every audio request, reference or not |
 
 The app waits for `/health` on the service it just started, up to 180 s, before moving on. With `SSH_HOST` empty the reference is not copied and the audio server reads it from the local path.
