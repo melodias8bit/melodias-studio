@@ -1,0 +1,15 @@
+# Thin caller: the gate lives in Dyallab/.github (see its README for the
+# pin policy). Bump the SHA and the version comment to upgrade.
+name: pr
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    uses: Dyallab/.github/.github/workflows/gate.yml@47c26100e9843c8157118bd452c812dd130aa674 # v1.0.0

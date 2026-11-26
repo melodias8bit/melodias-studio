@@ -1,0 +1,18 @@
+# Base tooling shared by every stack.
+# `dyallab init` merges the stack overlay into [tools]; do not rely on host binaries.
+[tools]
+rust = "1.100.0"
+lefthook = "2.2.2"
+jq = "1.8.2"
+
+[tasks.setup]
+description = "Install the pinned toolchain and git hooks"
+run = "make setup"
+
+[tasks.check]
+description = "Run the full local gate (same as CI)"
+run = "make check"
+
+[tasks.portability]
+description = "Check scripts for Arch Linux and macOS portability"
+run = "bash scripts/check-portability.sh"
