@@ -1,0 +1,7 @@
+# Rust stack overlay. Included by templates/base/Makefile via -include Makefile.stack.
+# All commands are CI-safe: they never modify tracked files.
+FMT_CMD = cargo fmt --check
+BUILD_CMD = cargo build --locked
+LINT_CMD = cargo clippy --all-targets --locked -- -D warnings
+TEST_CMD = cargo test --locked
+DOCS_CMD = bash scripts/check-docs.sh

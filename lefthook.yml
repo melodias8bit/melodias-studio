@@ -1,0 +1,13 @@
+# https://lefthook.dev/configuration/
+min_version: 2.2.2
+
+pre-commit:
+  parallel: true
+  commands:
+    portability:
+      run: bash scripts/check-portability.sh
+
+pre-push:
+  commands:
+    gate:
+      run: make check
