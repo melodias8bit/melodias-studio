@@ -3,7 +3,7 @@ use std::io::Write;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError, channel};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -273,8 +273,15 @@ pub fn run(terminal: &mut DefaultTerminal, cfg: Config) -> std::io::Result<()> {
             }
             app.splash_until = Instant::now();
             match key.code {
-                KeyCode::Char('q') if !app.running => return Ok(()),
+                // `q` used to quit here, but it also fires while typing: pasting
+                // a URL containing `q` (like `watch?v=dqWJ...`) closed the TUI.
+                // Quit on Esc or Ctrl+C instead, which never collide with input.
                 KeyCode::Esc if !app.running => return Ok(()),
+                KeyCode::Char('c')
+                    if key.modifiers.contains(KeyModifiers::CONTROL) && !app.running =>
+                {
+                    return Ok(());
+                }
                 KeyCode::Tab => {
                     app.field = match app.field {
                         Field::Url => Field::Vibe,
@@ -659,7 +666,7 @@ fn draw_status(frame: &mut Frame, app: &App, area: Rect) {
             Span::styled(" field  ", hint_style()),
             Span::styled(" Enter", key_style()),
             Span::styled(" next / run  ", hint_style()),
-            Span::styled(" q", key_style()),
+            Span::styled(" Esc", key_style()),
             Span::styled(" quit", hint_style()),
         ])
     };

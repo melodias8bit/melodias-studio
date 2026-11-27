@@ -12,7 +12,7 @@ The reference URL is optional in the product vision but required by the current 
 
 - `Tab` switches between the URL and the vibe.
 - `Enter` moves to the next field, then starts the run.
-- `q` quits, only once the run finished.
+- `Esc` or `Ctrl+C` quits, only once the run finished.
 
 When the pools are ready the run pauses on a review screen. Pick one image and one audio draft with `1-9`, switch sections with `Tab`, and continue with `Enter`. The candidates live under `output/<slug>/candidates/`; open them to compare.
 
