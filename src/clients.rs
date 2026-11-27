@@ -104,6 +104,10 @@ watermarks.",
         "model": cfg.llm_model,
         "temperature": 0.5,
         "max_tokens": 500,
+        // The host now runs a Qwen3 thinking model: without this flag the
+        // 500-token budget is spent on reasoning_content and the reply comes
+        // back with an empty content and finish_reason length.
+        "chat_template_kwargs": {"enable_thinking": false},
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user}
@@ -150,18 +154,46 @@ pub fn sanitize_eye_prompt(prompt: &str) -> String {
         .replace("red eyes", "soft green eyes")
 }
 
-/// Asks for the YouTube copy in the same loaded LLM session as the thumbnail
-/// prompt. The reply is a JSON object so the fixed template can stay in
-/// `youtube.rs` instead of inside the prompt.
-pub fn ask_youtube(cfg: &Config, vibe: &str) -> Result<crate::youtube::Draft> {
+/// Section headers of the audio arrangement, in order. The skeleton is fixed;
+/// the LLM writes the content of each section from the vibe, so an arbitrary
+/// brief ("haunted music box waltz") gets its own tempo and dynamics instead
+/// of falling into a hardcoded branch.
+pub const AUDIO_SECTIONS: &[&str] = &[
+    "TEMPO AND RHYTHM",
+    "LEAD",
+    "RHYTHM SECTION",
+    "LAYERS",
+    "HARMONY",
+    "ARRANGEMENT",
+    "PRODUCTION",
+    "STRUCTURE",
+];
+
+/// Asks the LLM for the sectional arrangement of the track. The style medium
+/// and the instrumental-only rule are pinned here, so the reply only decides
+/// the musical content, never the channel constraints.
+pub fn ask_audio_arrangement(cfg: &Config, vibe: &str) -> Result<String> {
     let url = format!("{}/v1/chat/completions", cfg.llm_url.trim_end_matches('/'));
+    let system = format!(
+        "You write the musical arrangement for an instrumental {style} track. Reply in English \
+        with exactly these 8 section headers in order, each followed by one short paragraph of \
+        30 to 60 words: TEMPO AND RHYTHM, LEAD, RHYTHM SECTION, LAYERS, HARMONY, ARRANGEMENT, \
+        PRODUCTION, STRUCTURE. The music must fit the given vibe with that vibe's own tempo, \
+        dynamics and mood: a calm brief gets slow tempos and a soft peak, an epic brief gets \
+        driving drums and a big climax. Instrumental only, never vocals. Never mention audio \
+        formats, text, watermarks or video.",
+        style = cfg.audio_style
+    );
     let body = json!({
         "model": cfg.llm_model,
-        "temperature": 0.8,
-        "max_tokens": 700,
+        "temperature": 0.7,
+        "max_tokens": 900,
+        // Same thinking-model guard as the other local calls: the tokens are
+        // for the arrangement, not for reasoning_content.
+        "chat_template_kwargs": {"enable_thinking": false},
         "messages": [
-            {"role": "system", "content": crate::youtube::SYSTEM},
-            {"role": "user", "content": crate::youtube::user_prompt(vibe)}
+            {"role": "system", "content": system},
+            {"role": "user", "content": format!("Vibe: {vibe}")}
         ]
     });
     let resp: serde_json::Value = long_client()?
@@ -174,7 +206,73 @@ pub fn ask_youtube(cfg: &Config, vibe: &str) -> Result<crate::youtube::Draft> {
     let raw = resp["choices"][0]["message"]["content"]
         .as_str()
         .context("LLM response without content")?;
-    parse_youtube(raw)
+    let text = raw.trim().to_string();
+    if valid_audio_arrangement(&text) {
+        Ok(text)
+    } else {
+        bail!("the LLM reply has no full 8-section arrangement")
+    }
+}
+
+/// The reply is only usable when every section header survived, in any letter
+/// case. A partial answer falls back to the local keyword template instead of
+/// producing a lopsided prompt.
+fn valid_audio_arrangement(text: &str) -> bool {
+    let upper = text.to_ascii_uppercase();
+    AUDIO_SECTIONS.iter().all(|section| {
+        // Models often misspell ARRANGEMENT as ARRANGMENT; accept either, the
+        // musical content is what matters.
+        if *section == "ARRANGEMENT" {
+            upper.contains("ARRANGEMENT") || upper.contains("ARRANGMENT")
+        } else {
+            upper.contains(section)
+        }
+    })
+}
+
+/// Asks for the YouTube copy in the same loaded LLM session as the thumbnail
+/// prompt. The reply is a JSON object so the fixed template can stay in
+/// `youtube.rs` instead of inside the prompt. Small local models mangle the
+/// JSON often enough (raw control characters, cut replies) that one bad
+/// answer retries instead of silently downgrading the run to the static
+/// template: three short attempts cost seconds next to a 36-minute run.
+pub fn ask_youtube(cfg: &Config, vibe: &str) -> Result<crate::youtube::Draft> {
+    const ATTEMPTS: u32 = 3;
+    let url = format!("{}/v1/chat/completions", cfg.llm_url.trim_end_matches('/'));
+    let body = json!({
+        "model": cfg.llm_model,
+        "temperature": 0.8,
+        "max_tokens": 700,
+        // Same thinking-model guard as ask_image_prompt: keep the tokens for
+        // the JSON answer instead of reasoning_content.
+        "chat_template_kwargs": {"enable_thinking": false},
+        "messages": [
+            {"role": "system", "content": crate::youtube::SYSTEM},
+            {"role": "user", "content": crate::youtube::user_prompt(vibe)}
+        ]
+    });
+    let mut last_error: Option<anyhow::Error> = None;
+    for _ in 0..ATTEMPTS {
+        let attempt: Result<crate::youtube::Draft> = (|| {
+            let resp: serde_json::Value = long_client()?
+                .post(&url)
+                .json(&body)
+                .send()
+                .and_then(|r| r.error_for_status())
+                .with_context(|| format!("llama-server failed at {url}"))?
+                .json()?;
+            let raw = resp["choices"][0]["message"]["content"]
+                .as_str()
+                .context("LLM response without content")?;
+            parse_youtube(raw)
+        })();
+        match attempt {
+            Ok(draft) => return Ok(draft),
+            Err(error) => last_error = Some(error),
+        }
+    }
+    Err(last_error.unwrap_or_else(|| anyhow::anyhow!("no youtube attempt ran")))
+        .context(format!("youtube copy failed after {ATTEMPTS} attempts"))
 }
 
 /// Models sometimes wrap the JSON in a markdown fence or add a sentence around
@@ -187,12 +285,47 @@ pub fn parse_youtube(raw: &str) -> Result<crate::youtube::Draft> {
     if end <= start {
         bail!("the LLM reply has an empty JSON object");
     }
+    let cleaned = sanitize_json_controls(&raw[start..=end]);
     let draft: crate::youtube::Draft =
-        serde_json::from_str(&raw[start..=end]).context("the LLM reply is not valid JSON")?;
+        serde_json::from_str(&cleaned).context("the LLM reply is not valid JSON")?;
     if draft.title.trim().is_empty() && draft.intro.trim().is_empty() && draft.hashtags.is_empty() {
         bail!("the LLM returned an empty metadata object");
     }
     Ok(draft)
+}
+
+/// Replaces raw control characters inside JSON strings with a space. Small
+/// local models sometimes emit a literal newline or tab inside a value, which
+/// serde rejects even though the object is otherwise fine. Structural
+/// whitespace outside strings is kept untouched.
+fn sanitize_json_controls(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut in_string = false;
+    let mut escaped = false;
+    for ch in text.chars() {
+        if in_string {
+            if escaped {
+                out.push(ch);
+                escaped = false;
+            } else if ch == '\\' {
+                out.push(ch);
+                escaped = true;
+            } else if ch == '"' {
+                out.push(ch);
+                in_string = false;
+            } else if ch.is_control() {
+                out.push(' ');
+            } else {
+                out.push(ch);
+            }
+        } else {
+            out.push(ch);
+            if ch == '"' {
+                in_string = true;
+            }
+        }
+    }
+    out
 }
 
 /// One take: drafts and the final share the same request shape, only the
