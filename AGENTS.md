@@ -66,6 +66,7 @@ References and optional commands:
 - Defaults point at one GPU box (`192.168.88.38`). `deploy/env.sh` holds host paths, ports and model paths; `serve-{llm,sd,audio}.sh` each answer `start|stop|status`; `make deploy` copies them plus `audio-server.json` to `REMOTE_BIN_DIR`/`REMOTE_CONFIG_DIR`.
 - `docs/configuration.md` is the reference for every env var, config key and output format. `docs/setup.md` covers services, `docs/usage.md` covers flows, `docs/video.md` covers the renderer, and `dashboard/README.md` covers the charts.
 - Docs can lag the code: trust `src/` (`src/video.rs`, `src/pipeline.rs`) and update the docs when behavior is confirmed. The five editorial axes and their weights from RFC 0002 are still unimplemented.
+- Publishing a video means updating the site: `make site-videos` refreshes More from the channel from the live channel, add the pool stills to Selected creations (`docs/assets/gallery-<prefix>-NN.webp`, one `figure.creation` per still, filter button and counts, `scripts/prepare-site.sh`), then push: Pages deploys `site/` on pushes that touch the page or its assets.
 
 ## Agent skills
 

@@ -39,20 +39,25 @@ custom domain is added, update the canonical and Open Graph URLs in
 
 - Gallery: `docs/assets/tui-review.png` (regenerate with
   `DUMP_TUI_HTML_DIR=... cargo test draws_without_leaving_the_terminal`) feeds
-  the TUI tab, while the creations component reads the 26 pool stills
-  (`docs/assets/gallery-*.webp`, winners and losers from five runs, 960 px
+  the TUI tab, while the creations component reads the 32 pool stills
+  (`docs/assets/gallery-*.webp`, winners and losers from six runs, 960 px
   WebP): `gallery-battle-01..06` (winner 01), `gallery-finale-01..06`
   (winner 04), `gallery-artcore-01` (single take), `gallery-violin-01..04`
-  (winner 04) and `gallery-kawaii-01..09` (winner 04). The component filters by
+  (winner 04), `gallery-kawaii-01..09` (winner 04) and
+  `gallery-village-01..06` (winner 04). The component filters by
   run, toggles winners only and opens a lightbox, so it scales past hundreds
   of stills without endless scroll. Regenerate one pool with:
   `ffmpeg -y -i output/<slug>/candidates/image-NN.png -vf scale=960:-2
   -c:v libwebp -quality 82 docs/assets/gallery-<prefix>-NN.webp`, then add one
-  `figure.creation` per still plus its filter count in `site/index.html`. The
+  `figure.creation` per still, its filter button and count plus the `All`
+  total in `site/index.html`, and the files in `scripts/prepare-site.sh`. The
   dashboard keeps its own screenshots in `dashboard/README.md`.
-- Demo tracklist: `More from the channel` lists the newest upload first with
-  its YouTube duration (for example `3:30` for a 210 s run). Put the new video
-  on top when publishing; the demo caption links the featured run.
+- Demo tracklist: `More from the channel` renders `site/videos.json` (newest
+  upload first with its YouTube duration) and keeps the static list as the
+  offline fallback. Refresh it from the live channel with
+  `make site-videos` (needs `yt-dlp`; `SITE_VIDEOS_COUNT` overrides how many
+  uploads are listed); the file is committed and the demo caption links the
+  featured run.
 - Pipeline diagram: the SVG inside the pipeline section is extracted from
   `site/pipeline.html`, an Archify workflow generated from `src/pipeline.rs`
   (`STAGES` plus the retry and review branches). The SVG carries the Archify

@@ -298,4 +298,32 @@
       }
     });
   }
+
+  /* ---------- channel tracklist ---------- */
+
+  var tracklist = $(".tracklist ul");
+  if (tracklist && "fetch" in window) {
+    window.fetch("videos.json").then(function (response) {
+      if (!response.ok) throw new Error("tracklist unavailable");
+      return response.json();
+    }).then(function (videos) {
+      if (!videos || !videos.length) return;
+      tracklist.innerHTML = "";
+      videos.forEach(function (video) {
+        var item = document.createElement("li");
+        var link = document.createElement("a");
+        link.href = "https://www.youtube.com/watch?v=" + video.id;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = video.title;
+        var length = document.createElement("span");
+        length.textContent = video.duration;
+        item.appendChild(link);
+        item.appendChild(length);
+        tracklist.appendChild(item);
+      });
+    }).catch(function () {
+      /* keep the static fallback list */
+    });
+  }
 })();

@@ -60,3 +60,39 @@ fn rejects_an_empty_youtube_reply() {
     assert!(parse_youtube("no json here").is_err());
     assert!(parse_youtube("{}").is_err());
 }
+
+#[test]
+fn parses_youtube_json_with_raw_controls_inside_strings() {
+    let raw =
+        "{\"title\":\"night\ndrive\",\"intro\":\"soft\tlullaby\",\"hashtags\":[\"#8BitMusic\"]}";
+    let draft = parse_youtube(raw).unwrap();
+    assert_eq!(draft.title, "night drive");
+    assert_eq!(draft.intro, "soft lullaby");
+    assert_eq!(draft.hashtags, vec!["#8BitMusic"]);
+}
+
+#[test]
+fn sanitizer_keeps_structure_and_escapes() {
+    let cleaned = sanitize_json_controls("{\"a\":\"x\\n\\\"y\"}\n{\"b\":1}");
+    assert_eq!(cleaned, "{\"a\":\"x\\n\\\"y\"}\n{\"b\":1}");
+}
+
+#[test]
+fn full_section_headers_make_a_valid_arrangement() {
+    let text = "TEMPO AND RHYTHM\nSlow.\nLEAD\nFlute.\nRHYTHM SECTION\nSoft bass.\nLAYERS\nPads.\nHARMONY\nGentle.\nARRANGEMENT\nSparse.\nPRODUCTION\nMellow.\nSTRUCTURE\n[End]";
+    assert!(valid_audio_arrangement(text));
+}
+
+#[test]
+fn a_partial_arrangement_falls_back_to_the_template() {
+    assert!(!valid_audio_arrangement(
+        "TEMPO AND RHYTHM\nSlow.\nLEAD\nFlute."
+    ));
+    assert!(!valid_audio_arrangement(""));
+}
+
+#[test]
+fn the_common_arrangment_typo_still_counts_as_full() {
+    let text = "TEMPO AND RHYTHM\nSlow.\nLEAD\nFlute.\nRHYTHM SECTION\nSoft bass.\nLAYERS\nPads.\nHARMONY\nGentle.\nARRANGMENT\nSparse.\nPRODUCTION\nMellow.\nSTRUCTURE\n[End]";
+    assert!(valid_audio_arrangement(text));
+}

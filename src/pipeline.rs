@@ -177,8 +177,9 @@ fn run(
         };
 
     // The LLM writes the thumbnail prompt while it still owns the GPU. It also
-    // writes the YouTube copy here so no other stage pays for a second load.
-    let (image_prompt_text, youtube_draft) = step(tx, 0, || {
+    // writes the YouTube copy and the audio arrangement here so no other stage
+    // pays for a second load.
+    let (image_prompt_text, youtube_draft, audio_arrangement) = step(tx, 0, || {
         media::ssh_run(cfg, &cfg.llm_start_cmd)?;
         clients::wait_llm(cfg, Duration::from_secs(180))?;
         let prompt = clients::ask_image_prompt(cfg, vibe)?;
@@ -192,7 +193,17 @@ fn run(
                 None
             }
         };
-        Ok((prompt, youtube))
+        let arrangement = match clients::ask_audio_arrangement(cfg, vibe) {
+            Ok(text) => Some(text),
+            Err(error) => {
+                log(
+                    tx,
+                    format!("arrangement: keeping the local template: {error:#}"),
+                );
+                None
+            }
+        };
+        Ok((prompt, youtube, arrangement))
     })?;
     let mut image_prompt = retry::Prompt::new(image_prompt_text, cfg.image_negative_prompt.clone());
     let youtube_models = youtube::Models {
@@ -264,7 +275,12 @@ fn run(
     log(tx, format!("remote reference: {remote}"));
 
     let mut audio_prompt = retry::Prompt::new(
-        compose_audio_prompt(vibe, &cfg.audio_style, &cfg.audio_detail),
+        compose_audio_prompt(AudioBrief {
+            vibe,
+            style: &cfg.audio_style,
+            arrangement: audio_arrangement.as_deref(),
+            detail: &cfg.audio_detail,
+        }),
         cfg.audio_negative_prompt.clone(),
     );
     log(tx, format!("prompt audio: {}", audio_prompt.positive));
@@ -1151,16 +1167,91 @@ pub fn slugify(text: &str) -> String {
     }
 }
 
+/// Words that switch the arrangement to the calm variant. The vibe carries the
+/// mood, so a chill brief must not get the driving drums and
+/// maximum-intensity climax of the default arrangement. Substring match on
+/// purpose: relax covers relaxing, sleep covers sleepy.
+const CALM_WORDS: &[&str] = &[
+    "ambient", "calm", "chill", "cozy", "dreamy", "gentle", "lullaby", "mellow", "pastoral",
+    "peaceful", "quiet", "relax", "serene", "sleep", "slow", "soft", "tranquil",
+];
+
+fn vibe_is_calm(vibe: &str) -> bool {
+    let haystack = vibe.to_ascii_lowercase();
+    CALM_WORDS.iter().any(|word| haystack.contains(word))
+}
+
+/// Named brief for the audio prompt: over three params, so they travel as one
+/// object. `arrangement` is the LLM-written sectional body from stage 0, which
+/// covers arbitrary vibes; when that call failed, the local keyword template
+/// below stands in as the offline fallback.
+pub struct AudioBrief<'a> {
+    pub vibe: &'a str,
+    pub style: &'a str,
+    pub arrangement: Option<&'a str>,
+    pub detail: &'a str,
+}
+
 /// The channel medium is a rule: the vibe adds mood, the style is always there.
-/// The template carries the same sectional detail a hand-written prompt has, so
-/// a short vibe still gets a full arrangement: style, tempo, lead, rhythm,
-/// layers, harmony, dynamics, production and structure. `detail` holds run-
+/// The skeleton is fixed (style, tempo, lead, rhythm, layers, harmony, dynamics,
+/// production, structure); the content comes from the LLM arrangement when
+/// stage 0 produced one, else from the keyword template. `detail` holds run-
 /// specific extras (BPM, instruments) and is appended verbatim; it stays empty
 /// unless the run needs it. Instrumental only, always.
-pub fn compose_audio_prompt(vibe: &str, style: &str, detail: &str) -> String {
-    let base = format!(
-        "{vibe}, {style} instrumental track.\n\n\
-         STYLE\n\
+fn keyword_template(vibe: &str, style: &str) -> String {
+    if vibe_is_calm(vibe) {
+        format!(
+            "STYLE\n\
+         Instrumental {style} music in the world of {vibe}: a tender, soothing piece \
+         with a soft musical identity and a calm, breathing flow, composed as a continuous \
+         gentle journey rather than a conventional pop song. Instrumental only. No vocals. An \
+         original composition with its own melodies, riffs, chord progressions and musical \
+         identity.\n\n\
+         TEMPO AND RHYTHM\n\
+         A slow tempo and relaxed meter that fit the mood of {vibe}, with a soft, unhurried \
+         pulse throughout the composition. Light, rounded percussion with gentle taps, soft \
+         shaker textures and warm low pulses, never a driving kick. The rhythm should feel \
+         loose, breathing and full of calm.\n\n\
+         LEAD\n\
+         One expressive lead voice as the primary melodic instrument, with a soft, warm tone, \
+         gentle sustain and lyrical phrasing. Build the musical identity around a simple, \
+         memorable melodic motif with delicate variations and tender call-and-response phrases. \
+         Soft, expressive and unmistakably melodic, with occasional harmonized lines and gentle \
+         echoes between phrases.\n\n\
+         RHYTHM SECTION\n\
+         A soft, warm bass foundation with long sustained notes that loosely follow the gentle \
+         pulse, cradling the low end without driving it. Rhythmic chords alternate between \
+         sustained harmonic support and slow, rocking patterns.\n\n\
+         LAYERS\n\
+         Supporting orchestral and synthesizer layers that reinforce the atmosphere without \
+         overpowering the lead: warm pads, soft bell-like tones and airy keys, with gentle \
+         melodic responses, slow swells and dreamy accents.\n\n\
+         HARMONY\n\
+         Soft melodic hooks, gentle harmonic movement, mild tension and a warm, comforting \
+         resolution, balancing the emotions of {vibe} with tender, expressive melodies. Simple \
+         motifs, flowing sequences and carefully placed harmonic changes.\n\n\
+         ARRANGEMENT\n\
+         Introduce the central motif early over near-silence. Slowly add delicate layers and \
+         vary the material so it never turns monotonous. Contrast slightly fuller passages \
+         against sparse, intimate ones, with soft swells and unhurried transitions.\n\n\
+         PRODUCTION\n\
+         Professional-quality modern soundtrack production: clear separation between instruments, \
+         soft percussion, warm low end, articulate lead, wide stereo imaging and controlled, \
+         detailed layering. Tasteful room ambience and gentle reverb for depth and calm. A \
+         polished, intimate, mellow sound.\n\n\
+         STRUCTURE\n\
+         [Intro] A short, quiet opening with a sparse melodic motif and immediate calm. \
+         [Theme A] The central melodic motif over the gentle pulse, establishing the identity. \
+         [Theme A variation] The motif repeated with soft harmonies and more delicate variations. \
+         [Theme B] A contrasting passage with different harmony and slightly deeper feeling. \
+         [Development] The main ideas gently developed through flowing variations and layered \
+         harmonies. [Break] A near-silent passage for contrast and rest, keeping the calm. \
+         [Climax] The main motif back at its warmest and fullest, still gentle. [Finale] A soft, \
+         memorable conclusion that resolves into stillness. [End]"
+        )
+    } else {
+        format!(
+            "STYLE\n\
          Instrumental {style} music in the world of {vibe}: an engaging, emotionally charged piece \
          with a strong musical identity and constant forward momentum, composed as a continuous \
          musical journey rather than a conventional pop song. Instrumental only. No vocals. An \
@@ -1209,7 +1300,22 @@ pub fn compose_audio_prompt(vibe: &str, style: &str, detail: &str) -> String {
          instrumentation for contrast and anticipation, keeping the rhythmic identity. [Climax] The \
          main motif back with the full band at maximum intensity. [Finale] A powerful, memorable \
          conclusion with a decisive resolution. [End]"
-    );
+        )
+    }
+}
+
+pub fn compose_audio_prompt(brief: AudioBrief<'_>) -> String {
+    let AudioBrief {
+        vibe,
+        style,
+        arrangement,
+        detail,
+    } = brief;
+    let body = match arrangement {
+        Some(text) => text.trim().to_string(),
+        None => keyword_template(vibe, style),
+    };
+    let base = format!("{vibe}, {style} instrumental track.\n\n{body}");
     let detail = detail.trim();
     if detail.is_empty() {
         base
