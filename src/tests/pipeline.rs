@@ -38,9 +38,18 @@ fn scored(name: &str, value: Option<f64>, findings: Vec<score::Finding>) -> Scor
     }
 }
 
+fn brief<'a>(vibe: &'a str, detail: &'a str) -> AudioBrief<'a> {
+    AudioBrief {
+        vibe,
+        style: "8-bit chiptune",
+        arrangement: None,
+        detail,
+    }
+}
+
 #[test]
 fn the_medium_is_always_in_the_audio_prompt() {
-    let prompt = compose_audio_prompt("epic orchestral", "8-bit chiptune", "");
+    let prompt = compose_audio_prompt(brief("epic orchestral", ""));
     assert!(prompt.starts_with("epic orchestral, 8-bit chiptune"));
     assert!(prompt.contains("instrumental"));
     assert!(prompt.contains("No vocals"));
@@ -50,10 +59,45 @@ fn the_medium_is_always_in_the_audio_prompt() {
 }
 
 #[test]
+fn a_chill_vibe_gets_the_calm_arrangement() {
+    let prompt = compose_audio_prompt(brief(
+        "chill pastoral village lullaby, warm shepherd flute",
+        "",
+    ));
+    assert!(prompt.contains("slow tempo"));
+    assert!(prompt.contains("still gentle"));
+    assert!(!prompt.contains("powerful kick drum patterns"));
+    assert!(!prompt.contains("maximum intensity"));
+}
+
+#[test]
+fn an_epic_vibe_keeps_the_driving_arrangement() {
+    let prompt = compose_audio_prompt(brief("epic 8bit battle theme", ""));
+    assert!(prompt.contains("powerful kick drum patterns"));
+    assert!(prompt.contains("maximum intensity"));
+    assert!(!prompt.contains("slow tempo"));
+}
+
+#[test]
+fn an_llm_arrangement_replaces_the_keyword_template() {
+    let arrangement = "TEMPO AND RHYTHM\nA haunted music box waltz in 3/4.\nLEAD\nA detuned music box.\nRHYTHM SECTION\nSparse pizzicato.\nLAYERS\nCold pads.\nHARMONY\nMinor lament.\nARRANGEMENT\nSlow build.\nPRODUCTION\nLo-fi hiss.\nSTRUCTURE\n[Intro] Box alone. [End]";
+    let prompt = compose_audio_prompt(AudioBrief {
+        vibe: "haunted music box waltz",
+        style: "8-bit chiptune",
+        arrangement: Some(arrangement),
+        detail: "",
+    });
+    assert!(prompt.starts_with("haunted music box waltz, 8-bit chiptune"));
+    assert!(prompt.contains("haunted music box waltz in 3/4"));
+    assert!(!prompt.contains("powerful kick drum patterns"));
+    assert!(!prompt.contains("slow tempo"));
+}
+
+#[test]
 fn the_audio_detail_is_appended_verbatim() {
-    let prompt = compose_audio_prompt("epic orchestral", "8-bit chiptune", "117 BPM, lead guitars");
+    let prompt = compose_audio_prompt(brief("epic orchestral", "117 BPM, lead guitars"));
     assert!(prompt.contains("DETAIL\n117 BPM, lead guitars"));
-    let plain = compose_audio_prompt("epic orchestral", "8-bit chiptune", "  ");
+    let plain = compose_audio_prompt(brief("epic orchestral", "  "));
     assert!(!plain.contains("DETAIL"));
 }
 
