@@ -8,7 +8,7 @@ PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 BIN := target/release/melodias
 
-.PHONY: help run generate image judge score youtube history export dashboard site render video backfill refs build check skills-check docs-check fmt test install uninstall deploy status log clean
+.PHONY: help run generate image judge score youtube history export dashboard site site-videos render video backfill refs build check skills-check docs-check fmt test install uninstall deploy status log clean
 
 help:
 	@printf '%s\n' \
@@ -25,6 +25,7 @@ help:
   '  make export CSV=... OUT=...          static dashboard overview, no server' \
   '  make dashboard                       serve the read-only dashboard on 127.0.0.1' \
   '  make site                            preview the project page on 127.0.0.1:4000' \
+  '  make site-videos                     refresh More from the channel from YouTube' \
   '  make backfill [ARGS=--replace]       score the runs in output/ into the history DB' \
   '  make refs ARGS="fetch --source opengameart --concept castle"  fill the reference library' \
   '  make refs ARGS="generate --concept volcano --count 5"  generate references with sd-server' \
@@ -76,6 +77,9 @@ backfill:
 refs:
 	@test -n "$(ARGS)" || { echo 'missing ARGS, for example: make refs ARGS="fetch --source opengameart --concept castle --count 20"'; exit 2; }
 	$(CARGO) run --release -- refs $(ARGS)
+
+site-videos:
+	bash scripts/update-site-videos.sh
 
 history:
 	$(CARGO) run --release -- history $(ARGS)

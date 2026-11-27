@@ -29,7 +29,7 @@ for name in banner.png tui.png tui-review.png dashboard-home.png dashboard-detai
   copy "$images/$name" "$img_out/$name"
 done
 
-for name in gallery-battle-01.webp gallery-battle-02.webp gallery-battle-03.webp gallery-battle-04.webp gallery-battle-05.webp gallery-battle-06.webp gallery-finale-01.webp gallery-finale-02.webp gallery-finale-03.webp gallery-finale-04.webp gallery-finale-05.webp gallery-finale-06.webp gallery-artcore-01.webp gallery-violin-01.webp gallery-violin-02.webp gallery-violin-03.webp gallery-violin-04.webp gallery-kawaii-01.webp gallery-kawaii-02.webp gallery-kawaii-03.webp gallery-kawaii-04.webp gallery-kawaii-05.webp gallery-kawaii-06.webp gallery-kawaii-07.webp gallery-kawaii-08.webp gallery-kawaii-09.webp; do
+for name in gallery-battle-01.webp gallery-battle-02.webp gallery-battle-03.webp gallery-battle-04.webp gallery-battle-05.webp gallery-battle-06.webp gallery-finale-01.webp gallery-finale-02.webp gallery-finale-03.webp gallery-finale-04.webp gallery-finale-05.webp gallery-finale-06.webp gallery-artcore-01.webp gallery-violin-01.webp gallery-violin-02.webp gallery-violin-03.webp gallery-violin-04.webp gallery-kawaii-01.webp gallery-kawaii-02.webp gallery-kawaii-03.webp gallery-kawaii-04.webp gallery-kawaii-05.webp gallery-kawaii-06.webp gallery-kawaii-07.webp gallery-kawaii-08.webp gallery-kawaii-09.webp gallery-village-01.webp gallery-village-02.webp gallery-village-03.webp gallery-village-04.webp gallery-village-05.webp gallery-village-06.webp; do
   copy "$images/$name" "$img_out/$name"
 done
 
@@ -52,4 +52,4 @@ if [ "$status" -ne 0 ]; then
   exit 1
 fi
 
-printf 'site: staged 5 images, 26 gallery stills and 1 overlay plus the demo still, audio and video\n'
+printf 'site: staged 5 images, 32 gallery stills and 1 overlay plus the demo still, audio and video\n'
