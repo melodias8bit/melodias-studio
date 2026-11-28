@@ -726,7 +726,8 @@ pub fn assemble_short(
     // The full YouTube title ("Name - description") never fits one 1080 px
     // line, so the overlay keeps the name and wraps it to two lines at most.
     // A fallback title built from the vibe is comma-heavy, so a very long
-    // name is cut to its first clause before wrapping.
+    // name is cut to its first clause before wrapping. A "Head: rest" name
+    // splits at the colon when both halves fit, so no word is ever cut.
     let mut name = title.split(" - ").next().unwrap_or(title).trim();
     if name.is_empty() {
         name = title.trim();
@@ -739,7 +740,19 @@ pub fn assemble_short(
             name = head;
         }
     }
-    let (line_one, line_two) = wrap_title(name, 24);
+    let (line_one, line_two) = match name.split_once(": ") {
+        Some((head, rest))
+            if head.chars().count() <= 28
+                && rest.chars().count() <= 28
+                && head.chars().count() >= 4 =>
+        {
+            (
+                escape_drawtext(head.trim()),
+                Some(escape_drawtext(rest.trim())),
+            )
+        }
+        _ => wrap_title(name, 24),
+    };
     let title_filters = match line_two {
         Some(second) => format!(
             "drawtext=fontfile={font_bold}:text='{line_one}':fontcolor=white:fontsize=60:borderw=2:bordercolor=black@0.9:shadowcolor=black@0.9:shadowx=3:shadowy=3:x=(w-text_w)/2:y=150,\
