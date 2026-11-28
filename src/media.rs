@@ -608,3 +608,310 @@ pub fn waveform_overlay(audio: &Path, output: &Path, width: u32, height: u32) ->
     }
     Ok(())
 }
+
+/// Finds the loudest window of `sec` seconds in an audio file, using the
+/// momentary loudness (`M`) reported by `ffmpeg ebur128`. No LLM is involved:
+/// the window with the highest mean `M` wins. Returns the start in seconds.
+pub fn loudest_window(audio: &Path, sec: f64) -> Result<f64> {
+    let out = Command::new("ffmpeg")
+        .args(["-hide_banner", "-i"])
+        .arg(audio)
+        .args(["-filter_complex", "ebur128", "-f", "null", "-"])
+        .output()
+        .context("running ffmpeg ebur128")?;
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let samples = parse_ebur128(&stderr);
+    if samples.is_empty() {
+        bail!(
+            "ebur128 reported no loudness samples for {}",
+            audio.display()
+        );
+    }
+    Ok(best_window(&samples, sec).unwrap_or(0.0))
+}
+
+/// Parses `t: <sec> ... M: <lufs>` lines from `ffmpeg ebur128` stderr.
+fn parse_ebur128(stderr: &str) -> Vec<(f64, f64)> {
+    let mut samples = Vec::new();
+    for line in stderr.lines() {
+        let Some(t_pos) = line.find("t:") else {
+            continue;
+        };
+        let Some(m_pos) = line.find("M:") else {
+            continue;
+        };
+        let t_text = line[t_pos + 2..].split_whitespace().next().unwrap_or("");
+        let m_text = line[m_pos + 2..].split_whitespace().next().unwrap_or("");
+        if let (Ok(t), Ok(m)) = (t_text.parse::<f64>(), m_text.parse::<f64>()) {
+            samples.push((t, m));
+        }
+    }
+    samples
+}
+
+/// Returns the start of the window of `sec` seconds with the highest mean
+/// loudness. Samples come at 10 Hz, so a 32 s window holds 320 samples.
+fn best_window(samples: &[(f64, f64)], sec: f64) -> Option<f64> {
+    let win = (sec * 10.0).round() as usize;
+    if samples.len() < win || win == 0 {
+        return None;
+    }
+    let mut best_start = samples[0].0;
+    let mut best_avg = f64::NEG_INFINITY;
+    let mut step = 10usize;
+    if samples.len() < win + step {
+        step = 1;
+    }
+    let mut i = 0;
+    while i + win <= samples.len() {
+        let sum: f64 = samples[i..i + win].iter().map(|(_, m)| *m).sum();
+        let avg = sum / win as f64;
+        if avg > best_avg {
+            best_avg = avg;
+            best_start = samples[i].0;
+        }
+        i += step;
+    }
+    Some(best_start.max(0.0))
+}
+
+/// Cuts a short clip out of a mastered track, with a short fade in and a
+/// longer fade out so it loops well on TikTok.
+pub fn extract_short_audio(audio: &Path, out: &Path, start: f64, sec: f64) -> Result<()> {
+    if let Some(parent) = out.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let fade_out = (sec - 5.0).max(0.0);
+    let mut cmd = Command::new("ffmpeg");
+    cmd.args(["-v", "error", "-y", "-ss"])
+        .arg(format!("{start:.3}"))
+        .args(["-t"])
+        .arg(format!("{sec:.3}"))
+        .arg("-i")
+        .arg(audio)
+        .args([
+            "-af",
+            &format!("afade=t=in:st=0:d=0.8,afade=t=out:st={fade_out:.3}:d=5"),
+            "-codec:a",
+            "libmp3lame",
+            "-b:a",
+            "192k",
+        ])
+        .arg(out);
+    attach_output(&mut cmd);
+    let status = cmd.status().context("extracting the short audio")?;
+    if !status.success() {
+        bail!("ffmpeg failed while extracting the short audio");
+    }
+    Ok(())
+}
+
+/// Assembles the vertical TikTok cut: 1080x1920, slow zoom on the thumbnail,
+/// dark bands top and bottom, waveform, and channel titles with a border and
+/// shadow so they read over bright stills. The overlay title is shortened to
+/// the part before " - " and wrapped to two lines so it never clips.
+/// Deterministic ffmpeg only.
+pub fn assemble_short(
+    image: &Path,
+    short_audio: &Path,
+    out: &Path,
+    title: &str,
+    subtitle: &str,
+) -> Result<()> {
+    const W: u32 = 1080;
+    const H: u32 = 1920;
+    let total = duration_secs(short_audio)?;
+    let fade_out_start = (total - 5.0).max(0.0);
+    let (font_bold, font_regular) = short_fonts();
+    // The full YouTube title ("Name - description") never fits one 1080 px
+    // line, so the overlay keeps the name and wraps it to two lines at most.
+    // A fallback title built from the vibe is comma-heavy, so a very long
+    // name is cut to its first clause before wrapping.
+    let mut name = title.split(" - ").next().unwrap_or(title).trim();
+    if name.is_empty() {
+        name = title.trim();
+    }
+    if name.chars().count() > 48
+        && let Some(head) = name.split(',').next()
+    {
+        let head = head.trim();
+        if head.chars().count() >= 12 {
+            name = head;
+        }
+    }
+    let (line_one, line_two) = wrap_title(name, 24);
+    let title_filters = match line_two {
+        Some(second) => format!(
+            "drawtext=fontfile={font_bold}:text='{line_one}':fontcolor=white:fontsize=60:borderw=2:bordercolor=black@0.9:shadowcolor=black@0.9:shadowx=3:shadowy=3:x=(w-text_w)/2:y=150,\
+             drawtext=fontfile={font_bold}:text='{second}':fontcolor=white:fontsize=60:borderw=2:bordercolor=black@0.9:shadowcolor=black@0.9:shadowx=3:shadowy=3:x=(w-text_w)/2:y=225"
+        ),
+        None => format!(
+            "drawtext=fontfile={font_bold}:text='{line_one}':fontcolor=white:fontsize=60:borderw=2:bordercolor=black@0.9:shadowcolor=black@0.9:shadowx=3:shadowy=3:x=(w-text_w)/2:y=200"
+        ),
+    };
+    let subtitle = escape_drawtext(subtitle);
+    let footer = "full track on YouTube - melodias8bit".to_string();
+    let graph = format!(
+        "[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},\
+         zoompan=z='min(zoom+0.0006,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={W}x{H}:fps=30,\
+         drawbox=y=0:w=iw:h=520:color=black@0.55:t=fill,\
+         drawbox=y=ih-460:w=iw:h=460:color=black@0.55:t=fill[bg];\
+         [1:a]asplit=2[aout][awave];\
+         [awave]showwaves=s={W}x220:mode=cline:rate=30:colors=0x56d4dd,format=rgba,colorchannelmixer=aa=0.6[wave];\
+         [bg][wave]overlay=0:H-h-180:format=auto,\
+         fade=t=in:st=0:d=0.8,fade=t=out:st={fade_out_start:.3}:d=5,format=yuv420p,\
+         {title_filters},\
+         drawtext=fontfile={font_regular}:text='{subtitle}':fontcolor=#ffe9a8:fontsize=36:borderw=1:bordercolor=black@0.9:shadowcolor=black@0.9:shadowx=2:shadowy=2:x=(w-text_w)/2:y=330,\
+         drawtext=fontfile={font_regular}:text='{footer}':fontcolor=white:fontsize=30:borderw=1:bordercolor=black@0.9:shadowcolor=black@0.9:shadowx=2:shadowy=2:x=(w-text_w)/2:y=h-120[v]"
+    );
+    let mut cmd = Command::new("ffmpeg");
+    cmd.args(["-v", "error", "-y", "-loop", "1", "-framerate", "30", "-i"])
+        .arg(image)
+        .arg("-i")
+        .arg(short_audio)
+        .args(["-filter_complex", &graph, "-map", "[v]", "-map", "[aout]"])
+        .args(["-t"])
+        .arg(format!("{total:.3}"))
+        .args([
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "21",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-movflags",
+            "+faststart",
+            "-shortest",
+        ])
+        .arg(out);
+    attach_output(&mut cmd);
+    let status = cmd.status().context("assembling the short")?;
+    if !status.success() {
+        bail!("ffmpeg failed while assembling the short");
+    }
+    Ok(())
+}
+
+/// Wraps an overlay title to at most two lines of `max` chars, splitting at a
+/// word boundary. A short name comes back as a single line; an overlong
+/// second line is cut with an ellipsis so it never clips.
+fn wrap_title(title: &str, max: usize) -> (String, Option<String>) {
+    let title = escape_drawtext(title);
+    if title.chars().count() <= max {
+        return (title, None);
+    }
+    let end = title
+        .char_indices()
+        .take(max + 1)
+        .last()
+        .map(|(idx, _)| idx)
+        .unwrap_or(title.len());
+    let split = title[..end].rfind(' ').unwrap_or(end);
+    let first = truncate_line(title[..split].trim(), max);
+    let second = truncate_line(title[split..].trim(), max);
+    if second.is_empty() {
+        (first, None)
+    } else {
+        (first, Some(second))
+    }
+}
+
+fn truncate_line(line: &str, max: usize) -> String {
+    if line.chars().count() <= max {
+        return line.to_string();
+    }
+    let end = line
+        .char_indices()
+        .take(max)
+        .last()
+        .map(|(idx, _)| idx)
+        .unwrap_or(line.len());
+    format!("{}…", line[..end].trim_end())
+}
+
+/// Escapes a value embedded in an ffmpeg `drawtext=text='...'` option.
+fn escape_drawtext(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for character in text.chars() {
+        if matches!(character, '\\' | '\'' | ':' | ',' | '[' | ']' | ';') {
+            out.push('\\');
+        }
+        out.push(character);
+    }
+    out
+}
+
+fn short_fonts() -> (String, String) {
+    let candidates = [
+        "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ];
+    let regular = [
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ];
+    let bold = candidates
+        .iter()
+        .find(|path| Path::new(path).is_file())
+        .unwrap_or(&candidates[0])
+        .to_string();
+    let plain = regular
+        .iter()
+        .find(|path| Path::new(path).is_file())
+        .unwrap_or(&regular[0])
+        .to_string();
+    (bold, plain)
+}
+
+#[cfg(test)]
+mod short_tests {
+    use super::{best_window, escape_drawtext, parse_ebur128, wrap_title};
+
+    #[test]
+    fn picks_the_loudest_window() {
+        let stderr = "t: 0.1 TARGET:-23 LUFS M: -20.0 S:-20.0 I: -20.0 LUFS\n\
+                      t: 0.2 TARGET:-23 LUFS M: -10.0 S:-20.0 I: -20.0 LUFS\n\
+                      t: 0.3 TARGET:-23 LUFS M: -11.0 S:-20.0 I: -20.0 LUFS\n";
+        let samples = parse_ebur128(stderr);
+        assert_eq!(samples.len(), 3);
+        // 0.2 s windows: the window starting at 0.2 averages -10.5, best.
+        let start = best_window(&samples, 0.2).unwrap();
+        assert!((start - 0.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn keeps_a_short_name_on_one_line() {
+        assert_eq!(
+            wrap_title("Dion Meadow at Dawn", 24),
+            ("Dion Meadow at Dawn".to_string(), None)
+        );
+    }
+
+    #[test]
+    fn wraps_a_long_name_at_a_word_boundary() {
+        let (first, second) = wrap_title("Epic 8-Bit Orchestral Finale Suite", 24);
+        assert!(first.chars().count() <= 24);
+        assert_eq!(second.unwrap(), "Finale Suite");
+    }
+
+    #[test]
+    fn cuts_an_overlong_second_line_with_an_ellipsis() {
+        let (first, second) = wrap_title(
+            "euphoric kawaii EDM showdown sparkling synth leads over pounding festival bass",
+            24,
+        );
+        assert!(first.chars().count() <= 24);
+        let second = second.unwrap();
+        assert!(second.chars().count() <= 25);
+        assert!(second.ends_with('…'));
+    }
+
+    #[test]
+    fn escapes_drawtext_specials() {
+        assert_eq!(escape_drawtext("a:b,c'd"), "a\\:b\\,c\\'d");
+    }
+}

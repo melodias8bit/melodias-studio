@@ -8,7 +8,11 @@ PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 BIN := target/release/melodias
 
-.PHONY: help run generate image judge score youtube history export dashboard site site-videos render video backfill refs build check skills-check docs-check fmt test install uninstall deploy status log clean
+# Rust stack overlay (CI-safe base commands, --locked). Provides FMT_CMD,
+# BUILD_CMD, LINT_CMD, TEST_CMD and DOCS_CMD used by check below.
+-include Makefile.stack
+
+.PHONY: help run generate image judge score youtube history export dashboard site site-videos render video short backfill refs build check skills-check docs-check fmt test install uninstall deploy status log clean
 
 help:
 	@printf '%s\n' \
@@ -32,6 +36,7 @@ help:
   '  make refs ARGS="import --concept castle --license CC0-1.0 pack.zip"  import packs' \
 	  '  make render DIR=output/<slug>        produced video with Remotion' \
 	  '  make video DIR=output/<slug>         fast video with ffmpeg' \
+	  '  make short DIR=output/<slug>         vertical TikTok cut with ffmpeg' \
 	  '  make uninstall                       removes the installed binary' \
 	  '  make log                             last lines of the newest log' \
 	  '  make check                           fmt + build + clippy + tests + skills + docs' \
@@ -105,13 +110,17 @@ video:
 	@test -n "$(DIR)" || { echo 'missing DIR, for example: make video DIR=output/<slug>'; exit 2; }
 	$(CARGO) run --release -- video "$(DIR)"
 
+short:
+	@test -n "$(DIR)" || { echo 'missing DIR, for example: make short DIR=output/<slug> [ARGS="--sec 32 --platform tiktok"]'; exit 2; }
+	$(CARGO) run --release -- short "$(DIR)" $(ARGS)
+
 check:
-	$(CARGO) fmt --check
-	$(CARGO) build
-	$(CARGO) clippy --all-targets -- -D warnings
-	$(CARGO) test
+	$(FMT_CMD)
+	$(BUILD_CMD)
+	$(LINT_CMD)
+	$(TEST_CMD)
 	./scripts/check-skills.sh
-	./scripts/check-docs.sh
+	$(DOCS_CMD)
 
 skills-check:
 	./scripts/check-skills.sh

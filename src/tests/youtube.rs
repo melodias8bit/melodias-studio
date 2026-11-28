@@ -138,3 +138,45 @@ fn ignores_an_incomplete_existing_copy() {
     assert!(from_meta(&meta).is_none());
     assert!(from_meta(&serde_json::json!({ "youtube": { "description": "   " } })).is_none());
 }
+
+#[test]
+fn builds_a_tiktok_caption_from_the_stored_copy() {
+    let caption = short_caption(
+        "Dion Meadow at Dawn",
+        "chill pastoral village lullaby, warm shepherd flute over soft pads",
+        &[
+            "#ChiptuneMusic".to_string(),
+            "#8BitLullaby".to_string(),
+            "#RetroRPG".to_string(),
+            "#NostalgicGaming".to_string(),
+            "#PixelArtMusic".to_string(),
+            "#CozyVibes".to_string(),
+        ],
+        "tiktok",
+    );
+    assert!(caption.starts_with("Dion Meadow at Dawn\n"));
+    assert!(
+        caption
+            .contains("A chill pastoral village lullaby with warm shepherd flute over soft pads.")
+    );
+    assert!(caption.contains("Full track on YouTube, link in bio."));
+    assert!(
+        caption.contains("#ChiptuneMusic #8BitLullaby #RetroRPG #NostalgicGaming #PixelArtMusic")
+    );
+    assert!(!caption.contains("#CozyVibes"));
+}
+
+#[test]
+fn shorts_points_at_the_channel_instead_of_the_bio() {
+    let caption = short_caption("title", "epic battle", &[], "shorts");
+    assert!(caption.contains("Full track on the channel."));
+    assert!(!caption.contains("link in bio"));
+}
+
+#[test]
+fn falls_back_to_default_tags_and_article() {
+    let caption = short_caption("", "epic orchestral battle", &[], "reels");
+    assert!(caption.starts_with("8-bit music\n"));
+    assert!(caption.contains("An epic orchestral battle."));
+    assert!(caption.contains("#8bit #chiptune #pixelart #retrogaming #gamingmusic"));
+}

@@ -46,10 +46,12 @@ fi
 
 copy "$images/demo-audio.mp3" "$media_out/demo-audio.mp3"
 copy "$images/demo-video.mp4" "$media_out/demo-video.mp4"
+copy "$images/demo-short.mp4" "$media_out/demo-short.mp4"
+copy "$images/demo-short-poster.webp" "$img_out/demo-short-poster.webp"
 
 if [ "$status" -ne 0 ]; then
   printf 'site: staging failed\n' >&2
   exit 1
 fi
 
-printf 'site: staged 5 images, 32 gallery stills and 1 overlay plus the demo still, audio and video\n'
+printf 'site: staged 6 images, 32 gallery stills and 1 overlay plus the demo still, audio, video and vertical short\n'

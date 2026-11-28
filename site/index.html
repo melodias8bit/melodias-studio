@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>melodias-studio: one vibe in, a chiptune and a video out</title>
-  <meta name="description" content="A Rust TUI and CLI that turns a reference URL and a vibe into an 8-bit thumbnail, an original instrumental chiptune, a 1080p video and the YouTube copy, using local models.">
+  <meta name="description" content="A Rust TUI and CLI that turns a reference URL and a vibe into an 8-bit thumbnail, an original instrumental chiptune, a 1080p video, a 9:16 vertical short and the YouTube copy, using local models.">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#171721">
   <link rel="canonical" href="https://melodias8bit.github.io/melodias-studio/">
 
   <meta property="og:type" content="website">
   <meta property="og:title" content="melodias-studio">
-  <meta property="og:description" content="One vibe in. A thumbnail, an original chiptune and a 1080p video out, generated with local models.">
+  <meta property="og:description" content="One vibe in. A thumbnail, an original chiptune, a 1080p video and a 9:16 short out, generated with local models.">
   <meta property="og:url" content="https://melodias8bit.github.io/melodias-studio/">
   <meta property="og:image" content="https://melodias8bit.github.io/melodias-studio/assets/img/banner.png">
   <meta name="twitter:card" content="summary_large_image">
@@ -57,7 +57,8 @@
           <p class="lede">
             <strong>melodias-studio</strong> is the release pipeline for 8-bit music channels.
             Drop in a reference URL and a vibe; it writes the prompt, draws the cover art,
-            composes an original instrumental chiptune, cuts the 1080p video and hands you
+            composes an original instrumental chiptune, cuts the 1080p video plus a 9:16
+            vertical short with paste-ready captions, and hands you
             the YouTube copy. Eleven stages, one command, no editing timeline.
           </p>
 
@@ -77,7 +78,7 @@
           <dl class="stats" aria-label="At a glance">
             <div><dt>Stages</dt><dd>11</dd></div>
             <div><dt>Track</dt><dd>210 s</dd></div>
-            <div><dt>Video</dt><dd>1080p</dd></div>
+            <div><dt>Video</dt><dd>1080p + 9:16</dd></div>
             <div><dt>Cloud needed</dt><dd>None</dd></div>
           </dl>
         </div>
@@ -447,6 +448,7 @@
             <p>
               The chosen still with a slow zoom, the waveform, pixel particles and
               channel branding. Remotion by default; the ffmpeg path is explicit and fast.
+              A 9:16 vertical cut with captions ships alongside for Shorts and TikTok.
             </p>
           </article>
           <article class="card">
@@ -713,7 +715,8 @@
           <span class="sec-index">03</span>
           <h2>From a real run</h2>
           <p>
-            One finished run, cut to 30 seconds for the web.
+            One finished run, cut to 30 seconds for the web: horizontal for
+            YouTube, vertical for Shorts and TikTok.
           </p>
         </header>
 
@@ -742,6 +745,14 @@
                      poster="assets/img/demo-thumbnail.webp"
                      src="assets/media/demo-video.mp4"></video>
               <p>The same excerpt, 720p.</p>
+            </article>
+
+            <article class="demo-player vertical">
+              <h3>The vertical cut, 30 seconds</h3>
+              <video controls playsinline preload="none"
+                     poster="assets/img/demo-short-poster.webp"
+                     src="assets/media/demo-short.mp4"></video>
+              <p>The same excerpt, 9:16, with <code>make short</code> captions for TikTok and Shorts.</p>
             </article>
           </div>
         </div>
@@ -788,6 +799,10 @@
           <details>
             <summary>What do the scores mean?</summary>
             <p>60 percent deterministic rubric plus 40 percent editorial read. The gates are 80 total, 85 technical and 70 editorial. A run that misses after the retry loop is recorded as accepted by limit, with the reason stored in history.</p>
+          </details>
+          <details>
+            <summary>Do you publish vertical Shorts?</summary>
+            <p><code>make short DIR=output/&lt;slug&gt;</code> cuts a 9:16 vertical from the loudest window with ffmpeg only, no LLM, and writes <code>short.txt</code> with paste-ready English captions for TikTok and YouTube Shorts. The same file posts natively to both.</p>
           </details>
           <details>
             <summary>Where does my data live?</summary>

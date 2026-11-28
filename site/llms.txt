@@ -35,6 +35,7 @@ Eleven stages in fixed order: image prompt, prepare image, image pool, download,
 - Track: 210 s by default, faded and normalized to -15 LUFS
 - Still: 1280x720, seed and prompts stored for replay
 - Video: 1920x1080 via Remotion, or the explicit ffmpeg fast path with `VIDEO_RENDERER=ffmpeg`
+- Short: 1080x1920 vertical cut with paste-ready English captions (`make short`), same file for TikTok and YouTube Shorts
 
 ## What a run leaves behind
 
@@ -48,6 +49,7 @@ One folder per run with the still, the mastered track, the 1080p video, the YouT
 - `make youtube DIR=output/<slug>`: rebuild the upload copy, offline or with `--opencode`
 - `make render DIR=output/<slug>`: re-render the video with Remotion
 - `make video DIR=output/<slug>`: cut the video with the ffmpeg fast path
+- `make short DIR=output/<slug>`: cut the 9:16 vertical with captions, same file for TikTok and YouTube Shorts
 - `make history`: query the local SQLite history
 - `make export CSV=<runs-csv> OUT=<dir>`: render the dashboard overview as static files, no server needed
 - `make dashboard`: serve read-only charts on `127.0.0.1:7373`

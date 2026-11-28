@@ -1144,6 +1144,12 @@ h3.run-sub:first-of-type { margin-top: 8px; }
 
 .demo-player video { aspect-ratio: 16 / 9; }
 
+.demo-player.vertical video {
+  aspect-ratio: 9 / 16;
+  max-width: 300px;
+  margin-inline: auto;
+}
+
 /* ---------- install ---------- */
 
 .install-grid { align-items: start; }
