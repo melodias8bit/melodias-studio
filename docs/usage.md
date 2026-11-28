@@ -46,6 +46,19 @@ make video DIR=output/<slug>
 
 The video is the chosen still with a slow zoom, glowing pixel particles, the audio waveform and edge fades, at `VIDEO_WIDTH` x `VIDEO_HEIGHT` (1920x1080 by default).
 
+### Vertical short
+
+`melodias short` cuts a 1080x1920 vertical out of a finished run with ffmpeg only and no LLM, for TikTok and YouTube Shorts. It picks the loudest window with `ffmpeg ebur128` unless `--start` is given, burns in the short title with a border and shadow, and writes `short.txt` with paste-ready English captions: TikTok and YouTube Shorts sections by default, or one section with `--platform`:
+
+```bash
+melodias short output/<slug>
+melodias short output/<slug> --sec 32 --platform tiktok
+# or
+make short DIR=output/<slug>
+```
+
+The caption reuses the stored YouTube title, one context line from the vibe and at most five discovery hashtags, so the long YouTube description is never pasted as is. See [video.md](video.md).
+
 ### YouTube copy
 
 Every finished run leaves `youtube.txt` next to the video. It is the full description, ready to paste into the upload form, and ends with the hashtags on the last line. The title is stored in `meta.json` under `youtube.title` and printed in the run log when the file is written.
@@ -248,6 +261,7 @@ Override the paths with `CHIP_VENV`, `FAMISTUDIO_BIN` and `DOTNET_ROOT`. The pro
 | `make youtube DIR=output/<slug>` | Writes the YouTube copy of a finished run, no GPU |
 | `make render DIR=output/<slug>` | Produces the Remotion video |
 | `make video DIR=output/<slug>` | Assembles the fast ffmpeg video |
+| `make short DIR=output/<slug>` | Cuts the 9:16 vertical with captions |
 | `make log` | Prints the last 40 lines of the newest log |
 | `make check` | `fmt --check`, build, `clippy -D warnings` and tests |
 | `make status` | Service state on the host over SSH |
@@ -266,6 +280,8 @@ output/<slug>/
 ├── candidates/    # N image candidates and N audio drafts
 ├── video.mp4      # 1920x1080, image + particles + waveform
 ├── video-ffmpeg.mp4  # only when Remotion rendered over the fast version
+├── short.mp4      # 1080x1920 vertical cut for TikTok and Shorts
+├── short.txt      # paste-ready English captions per platform
 └── work/          # source, reference and final take
 ```
 

@@ -269,6 +269,106 @@ Imagine a quiet moment where pixelated worlds and 8-bit melodies meet. Whether y
     )
 }
 
+/// Vertical-caption support for TikTok, YouTube Shorts and Reels. It is a
+/// static English template over the stored YouTube copy: hook title, one
+/// context line from the vibe, a per-platform call to action and at most five
+/// discovery hashtags. No LLM is involved.
+pub const SHORT_PLATFORMS: [&str; 3] = ["tiktok", "shorts", "reels"];
+
+const MAX_SHORT_HASHTAGS: usize = 5;
+
+const DEFAULT_SHORT_HASHTAGS: [&str; 5] = [
+    "#8bit",
+    "#chiptune",
+    "#pixelart",
+    "#retrogaming",
+    "#gamingmusic",
+];
+
+/// Builds the paste-ready caption for one vertical platform.
+pub fn short_caption(title: &str, vibe: &str, hashtags: &[String], platform: &str) -> String {
+    let title = title.trim();
+    let title = if title.is_empty() {
+        TITLE_FALLBACK
+    } else {
+        title
+    };
+    let tags = short_hashtags(hashtags);
+    format!(
+        "{title}\n\n{}\n{}\n\n{}",
+        short_context(vibe),
+        short_cta(platform),
+        tags.join(" ")
+    )
+}
+
+/// Human header for a `short.txt` section.
+pub fn short_header(platform: &str) -> &'static str {
+    match platform {
+        "shorts" => "YouTube Shorts",
+        "reels" => "Reels",
+        _ => "TikTok",
+    }
+}
+
+fn short_context(vibe: &str) -> String {
+    let parts: Vec<&str> = vibe
+        .split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect();
+    let body: String = match parts.as_slice() {
+        [] => "8-bit chiptune track".to_string(),
+        [first] => (*first).to_string(),
+        [first, second, ..] => format!("{first} with {second}"),
+    };
+    let article = match body.chars().next() {
+        Some(letter) if "aeiouAEIOU".contains(letter) => "An",
+        _ => "A",
+    };
+    let sentence = format!("{article} {body}");
+    let sentence = sentence.strip_suffix('.').unwrap_or(&sentence);
+    format!("{sentence}.")
+}
+
+fn short_cta(platform: &str) -> &'static str {
+    match platform {
+        "shorts" => "Full track on the channel. 🎧",
+        _ => "Full track on YouTube, link in bio. 🎧",
+    }
+}
+
+fn short_hashtags(hashtags: &[String]) -> Vec<String> {
+    let mut tags: Vec<String> = Vec::new();
+    for item in hashtags {
+        let tag = item.trim();
+        if tag.is_empty() {
+            continue;
+        }
+        let tag = if tag.starts_with('#') {
+            tag.to_string()
+        } else {
+            format!("#{tag}")
+        };
+        if tags.iter().any(|seen| seen.eq_ignore_ascii_case(&tag)) {
+            continue;
+        }
+        tags.push(tag);
+        if tags.len() == MAX_SHORT_HASHTAGS {
+            break;
+        }
+    }
+    for fallback in DEFAULT_SHORT_HASHTAGS {
+        if tags.len() >= MAX_SHORT_HASHTAGS {
+            break;
+        }
+        if !tags.iter().any(|seen| seen.eq_ignore_ascii_case(fallback)) {
+            tags.push(fallback.to_string());
+        }
+    }
+    tags
+}
+
 #[cfg(test)]
 #[path = "tests/youtube.rs"]
 mod tests;

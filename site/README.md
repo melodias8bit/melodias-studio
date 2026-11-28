@@ -87,9 +87,10 @@ custom domain is added, update the canonical and Open Graph URLs in
   inside that system.
 - Artwork: `banner.png` is the README banner.
 - Demo media: the page shows one real run from `output/`. The committed
-  sources are `docs/assets/demo-thumbnail.webp`, `docs/assets/demo-audio.mp3`
-  and `docs/assets/demo-video.mp4`; `scripts/prepare-site.sh` stages them into
-  `site/assets/img/` and `site/assets/media/`. Current run:
+  sources are `docs/assets/demo-thumbnail.webp`, `docs/assets/demo-audio.mp3`,
+  `docs/assets/demo-video.mp4`, `docs/assets/demo-short.mp4` and
+  `docs/assets/demo-short-poster.webp`; `scripts/prepare-site.sh` stages them
+  into `site/assets/img/` and `site/assets/media/`. Current run:
   `output/euphoric-kawaii-edm-showdown-sparkling-s`, vibe "euphoric kawaii EDM
   showdown, sparkling synth leads over pounding festival bass".
   Refresh them with:
@@ -104,10 +105,17 @@ custom domain is added, update the canonical and Open Graph URLs in
   ffmpeg -y -ss 45 -t 30 -i output/$slug/video.mp4 \
     -vf scale=1280:-2 -c:v libx264 -crf 27 -preset slow \
     -c:a aac -b:a 96k -movflags +faststart docs/assets/demo-video.mp4
+  make short DIR=output/$slug ARGS="--sec 30 --start 45"
+  ffmpeg -y -i output/$slug/short.mp4 \
+    -vf scale=720:1280 -c:v libx264 -crf 30 -preset slow \
+    -c:a aac -b:a 64k -movflags +faststart docs/assets/demo-short.mp4
+  ffmpeg -y -ss 5 -i docs/assets/demo-short.mp4 -frames:v 1 \
+    -vf scale=540:-2 -c:v libwebp -quality 82 docs/assets/demo-short-poster.webp
   ls -lh docs/assets/demo-*
   ```
 
-  Keep the still under 1 MB, the audio under 1 MB and the
-  clip under 4 MB so the whole page stays under about 12 MB.
+  Keep the still under 1 MB, the audio under 1 MB, the horizontal clip
+  under 4 MB and the vertical clip under 2 MB so the whole page stays
+  under about 13 MB.
   Follow [docs/runbooks/site-demo.md](../docs/runbooks/site-demo.md)
   on the machine with the generated runs for the full checklist.

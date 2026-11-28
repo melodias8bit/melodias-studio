@@ -29,7 +29,7 @@ use pipeline::{Msg, State};
 
 const USAGE: &str = "usage: melodias                 (TUI)\n       melodias <url> <vibe>     (headless)\n       melodias image <dir>      (regenerate the thumbnail of a run)\n       melodias judge <dir>      (review a finished run with the judge)\n       melodias score <dir>      (score a finished run, no GPU)\n       melodias youtube <dir>    (YouTube copy for a finished run, no GPU)\n       melodias history [view]   (runs, findings or trend, from the local database)
        melodias backfill [dir]   (score finished runs into the history database)\n       melodias dashboard        (local read-only charts over the database)
-       melodias export <runs-csv> <out-dir> (static overview from history CSV, no server)\n       melodias render <dir>     (produced video with Remotion)\n       melodias video <dir>      (fast video with ffmpeg)\n       melodias refs fetch       (fill the reference library from a source)\n       melodias refs import      (import files or packs into the library)\n       melodias refs generate    (generate reference images with sd-server)
+       melodias export <runs-csv> <out-dir> (static overview from history CSV, no server)\n       melodias render <dir>     (produced video with Remotion)\n       melodias video <dir>      (fast video with ffmpeg)\n       melodias short <dir>      (vertical cut + captions with ffmpeg)\n       melodias refs fetch       (fill the reference library from a source)\n       melodias refs import      (import files or packs into the library)\n       melodias refs generate    (generate reference images with sd-server)
        melodias chip <url|file>  (experimental NES cover of a track)";
 
 fn main() -> io::Result<()> {
@@ -71,6 +71,9 @@ fn main() -> io::Result<()> {
     }
     if args.first().is_some_and(|arg| arg == "video") {
         return run_video(cfg, &args);
+    }
+    if args.first().is_some_and(|arg| arg == "short") {
+        return run_short(cfg, &args);
     }
     if args.first().is_some_and(|arg| arg == "refs") {
         return run_refs(cfg, &args);
@@ -797,6 +800,195 @@ fn run_video(cfg: config::Config, args: &[String]) -> io::Result<()> {
         .map_err(|error| io::Error::other(format!("{error:#}")))?;
     println!("video: {}", video.display());
     Ok(())
+}
+
+/// Cuts a vertical TikTok short out of a finished run, without touching the
+/// GPU and without LLMs. It picks the loudest `sec` window with ffmpeg
+/// ebur128 unless `--start` is given, then assembles 1080x1920 with ffmpeg.
+fn run_short(cfg: config::Config, args: &[String]) -> io::Result<()> {
+    let mut target: Option<String> = None;
+    let mut sec = 32.0;
+    let mut start: Option<f64> = None;
+    let mut platform: Option<String> = None;
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--sec" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("{SHORT_USAGE}");
+                    std::process::exit(2);
+                }
+                sec = args[i].parse().unwrap_or_else(|_| {
+                    eprintln!("invalid --sec {}", args[i]);
+                    std::process::exit(2);
+                });
+            }
+            "--start" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("{SHORT_USAGE}");
+                    std::process::exit(2);
+                }
+                start = Some(args[i].parse().unwrap_or_else(|_| {
+                    eprintln!("invalid --start {}", args[i]);
+                    std::process::exit(2);
+                }));
+            }
+            "--platform" => {
+                i += 1;
+                if i >= args.len() {
+                    eprintln!("{SHORT_USAGE}");
+                    std::process::exit(2);
+                }
+                let value = args[i].to_ascii_lowercase();
+                if !youtube::SHORT_PLATFORMS.contains(&value.as_str()) {
+                    eprintln!("--platform must be tiktok, shorts or reels");
+                    std::process::exit(2);
+                }
+                platform = Some(value);
+            }
+            other if other.starts_with("--") => {
+                eprintln!("unknown flag {other}");
+                eprintln!("{SHORT_USAGE}");
+                std::process::exit(2);
+            }
+            _ => {
+                if target.is_none() {
+                    target = Some(args[i].clone());
+                }
+            }
+        }
+        i += 1;
+    }
+    let Some(target) = target else {
+        eprintln!("{SHORT_USAGE}");
+        std::process::exit(2);
+    };
+    let requested = std::path::PathBuf::from(target);
+    let dir = if requested.is_dir() {
+        requested
+    } else {
+        cfg.out_dir.join(requested)
+    };
+    let image = dir.join("thumbnail.png");
+    let audio = dir.join("audio.mp3");
+    for path in [&image, &audio] {
+        if !path.is_file() {
+            eprintln!("missing {}", path.display());
+            std::process::exit(2);
+        }
+    }
+    if !(5.0..=180.0).contains(&sec) {
+        eprintln!("--sec must be between 5 and 180");
+        std::process::exit(2);
+    }
+    let total =
+        media::duration_secs(&audio).map_err(|error| io::Error::other(format!("{error:#}")))?;
+    if total < sec + 1.0 {
+        eprintln!("the track is {total:.1} s long, too short for a {sec:.0} s short");
+        std::process::exit(2);
+    }
+    let start = match start {
+        Some(value) => value.clamp(0.0, total - sec),
+        None => media::loudest_window(&audio, sec)
+            .map_err(|error| io::Error::other(format!("{error:#}")))?
+            .clamp(0.0, total - sec),
+    };
+    let clip = dir.join("work").join("short-audio.mp3");
+    media::extract_short_audio(&audio, &clip, start, sec)
+        .map_err(|error| io::Error::other(format!("{error:#}")))?;
+    let (title, subtitle, vibe, hashtags) = short_copy(&dir);
+    let out = dir.join("short.mp4");
+    media::assemble_short(&image, &clip, &out, &title, &subtitle)
+        .map_err(|error| io::Error::other(format!("{error:#}")))?;
+    let platforms: Vec<String> = match platform.clone() {
+        Some(value) => vec![value],
+        None => vec!["tiktok".to_string(), "shorts".to_string()],
+    };
+    let mut caption = String::new();
+    for (idx, platform) in platforms.iter().enumerate() {
+        if platforms.len() > 1 {
+            if idx > 0 {
+                caption.push_str("\n---\n\n");
+            }
+            caption.push_str(youtube::short_header(platform));
+            caption.push_str("\n\n");
+        }
+        caption.push_str(&youtube::short_caption(&title, &vibe, &hashtags, platform));
+        caption.push('\n');
+    }
+    let caption_path = dir.join("short.txt");
+    std::fs::write(&caption_path, &caption)
+        .map_err(|error| io::Error::other(format!("{error:#}")))?;
+    let meta_path = dir.join("meta.json");
+    if let Ok(text) = std::fs::read_to_string(&meta_path)
+        && let Ok(mut meta) = serde_json::from_str::<serde_json::Value>(&text)
+    {
+        meta["video"]["short"] = serde_json::json!({
+            "file": out.display().to_string(),
+            "start_sec": start,
+            "duration_sec": sec,
+            "caption": caption_path.display().to_string(),
+            "platforms": platforms,
+        });
+        if let Ok(pretty) = serde_json::to_vec_pretty(&meta) {
+            let _ = std::fs::write(&meta_path, pretty);
+        }
+    }
+    println!("short: {} (start {start:.1}s, {sec:.0}s)", out.display());
+    println!("caption: {}", caption_path.display());
+    Ok(())
+}
+
+/// Usage for `melodias short`, kept in one place so every flag error matches.
+const SHORT_USAGE: &str = "usage: melodias short <output-dir> [--sec 32] [--start 103.0] [--platform tiktok|shorts|reels]";
+
+/// Title, overlay subtitle, vibe and hashtags for the vertical cut and its
+/// caption, read from a finished run.
+fn short_copy(dir: &std::path::Path) -> (String, String, String, Vec<String>) {
+    let text = std::fs::read_to_string(dir.join("meta.json")).unwrap_or_default();
+    let meta: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
+    let title = meta
+        .pointer("/youtube/title")
+        .and_then(|value| value.as_str())
+        .unwrap_or("")
+        .to_string();
+    let vibe = meta
+        .pointer("/vibe")
+        .and_then(|value| value.as_str())
+        .unwrap_or("");
+    let subtitle = vibe
+        .split(',')
+        .next()
+        .unwrap_or("8-bit chiptune")
+        .trim()
+        .to_string();
+    let slug = dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("melodias8bit");
+    let title = if title.is_empty() {
+        slug.to_string()
+    } else {
+        title
+    };
+    let subtitle = if subtitle.is_empty() {
+        "8-bit chiptune".to_string()
+    } else {
+        subtitle
+    };
+    let hashtags = meta
+        .pointer("/youtube/hashtags")
+        .and_then(|value| value.as_array())
+        .map(|list| {
+            list.iter()
+                .filter_map(|value| value.as_str())
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default();
+    (title, subtitle, vibe.to_string(), hashtags)
 }
 
 struct Reporter {

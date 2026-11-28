@@ -37,6 +37,19 @@ melodias render output/<slug>
 
 `melodias render` copies the still and track into `video/public/current/`, writes `video/props.json` with the duration, channel and particles, renders the waveform overlay from the audio, and runs `pnpm exec remotion render` with four workers. The previous `video.mp4` is kept as `video-ffmpeg.mp4`.
 
+## Short (TikTok vertical)
+
+`melodias short` cuts a 1080x1920 TikTok/Shorts version out of a finished run, with ffmpeg only and no LLMs. It picks the loudest window with `ffmpeg ebur128` unless `--start` is given, then assembles slow zoom, dark bands, waveform and channel titles.
+
+```bash
+melodias short output/<slug>
+# or
+make short DIR=output/<slug>
+make short DIR=output/<slug> ARGS="--sec 32 --start 103 --platform tiktok"
+```
+
+It writes `short.mp4` plus `work/short-audio.mp3` and records `video.short` with `start_sec` in `meta.json`. It also writes `short.txt` with paste-ready English captions: TikTok and YouTube Shorts sections by default, or a single section with `--platform tiktok|shorts|reels`. The caption reuses the stored YouTube title, one context line from the vibe and at most five discovery hashtags, so the long YouTube description is never pasted as is.
+
 The 1080p overlay clips live in `video/public/overlays/` and are committed. The 4K masters in `assets/videos/` are local only and ignored by git.
 
 ## Setup notes
