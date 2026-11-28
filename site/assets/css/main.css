@@ -1144,10 +1144,28 @@ h3.run-sub:first-of-type { margin-top: 8px; }
 
 .demo-player video { aspect-ratio: 16 / 9; }
 
+.demo-player.vertical {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.demo-player.vertical h3 {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
 .demo-player.vertical video {
   aspect-ratio: 9 / 16;
-  max-width: 300px;
-  margin-inline: auto;
+  flex: 0 1 200px;
+  min-width: 0;
+  margin: 0;
+}
+
+.demo-player.vertical p {
+  flex: 1 1 220px;
+  margin: 0;
 }
 
 /* ---------- install ---------- */

@@ -782,7 +782,7 @@
         <div class="faq">
           <details>
             <summary>Do I need a GPU?</summary>
-            <p>Generation happens on your own box behind three HTTP services. The defaults describe a single 24 GB card, reached over SSH, but local mode works too. Scoring, judging replays, exports and the dashboard need no GPU at all.</p>
+            <p>Yes, yours. Everything runs on hardware you control: the three services (LLM, image, audio) point at your own machine, over SSH by default or localhost in local mode. A single 24 GB card is enough. Scoring, judge replays, exports and the dashboard need no GPU at all.</p>
           </details>
           <details>
             <summary>Is the music original?</summary>
@@ -790,7 +790,7 @@
           </details>
           <details>
             <summary>What if I have no judge key?</summary>
-            <p>Nothing breaks. The TUI pauses so you can pick the candidates yourself, and headless runs take the best-scored default. A failed judge call is one log line, never an aborted run.</p>
+            <p>Nothing changes. The judge simply stays off and you pick the winners by hand in the TUI; headless runs take the best-scored default.</p>
           </details>
           <details>
             <summary>Can I rework a finished run?</summary>
