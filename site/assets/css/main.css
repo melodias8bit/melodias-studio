@@ -1017,12 +1017,21 @@ h3.run-sub:first-of-type { margin-top: 8px; }
 
 .demo-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
 
 .demo-grid > * { min-width: 0; }
+
+/* The players wrapper is flattened so the four media cards form a 2x2
+   grid: still | video on the first row, track | vertical on the second. */
+.demo-players { display: contents; }
+
+.demo-still { order: 1; }
+.demo-players > article:nth-child(1) { order: 3; }
+.demo-players > article:nth-child(2) { order: 2; }
+.demo-player.vertical { order: 4; }
 
 .demo-still {
   margin: 0;
@@ -1055,8 +1064,7 @@ h3.run-sub:first-of-type { margin-top: 8px; }
 .demo-still figcaption { margin: 0; }
 
 .demo-players {
-  display: grid;
-  gap: 12px;
+  display: contents;
 }
 
 .demo-player {
